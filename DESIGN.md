@@ -16,6 +16,8 @@ colors:
   yellow: "#ffe600"
   cyan-ink: "#0076ad"
   magenta-ink: "#c2006a"
+  ink-lift: "#2e2e30"
+  cyan-wash: "#e3f2fa"
 typography:
   display:
     fontFamily: "Archivo, system-ui, -apple-system, Segoe UI, sans-serif"
@@ -40,6 +42,11 @@ typography:
   body:
     fontFamily: "Archivo, system-ui, sans-serif"
     fontSize: "15px"
+    fontWeight: 400
+    lineHeight: 1.45
+  hint:
+    fontFamily: "Archivo, system-ui, sans-serif"
+    fontSize: "14px"
     fontWeight: 400
     lineHeight: 1.45
   body-small:
@@ -67,6 +74,12 @@ typography:
     fontWeight: 620
     letterSpacing: "-0.005em"
     fontVariation: "'wdth' 104"
+  wordmark:
+    fontFamily: "Archivo, system-ui, sans-serif"
+    fontSize: "17px"
+    fontWeight: 760
+    letterSpacing: "-0.01em"
+    fontVariation: "'wdth' 115"
 rounded:
   none: "0px"
 spacing:
@@ -89,7 +102,7 @@ components:
     padding: "0 20px"
     height: "44px"
   button-ink-hover:
-    backgroundColor: "#2e2e30"
+    backgroundColor: "{colors.ink-lift}"
   button-line:
     backgroundColor: "transparent"
     textColor: "{colors.ink}"
@@ -187,6 +200,8 @@ A near-achromatic print shop: grey surround, white stock, registration black, wi
 ### Tertiary
 - **Press Cyan** (cyan-ink): the legible, darker cyan for anything that must read as a line or text on stock: the focus ring, the caret, the intake mark on dragover.
 - **Correction Magenta** (magenta-ink): the error state only: the correction-slip caret mark and the void diagonal through a failed colour-bar patch.
+- **Ink Lift** (ink-lift): the hover fill of the primary ink button, a step off registration black.
+- **Cyan Wash** (cyan-wash): the photo plate's field on dragover, under its 1.5px cyan rule.
 
 ### Neutral
 - **Viewing Booth Grey** (surround): the page background around the sheet, and the browser theme colour.
@@ -222,7 +237,8 @@ HoloDraw's twenty colours in its order, held as content in `app.js`, not as toke
 - **Display** (720, clamp(27px, 3.3vw, 44px), 1.04, width 118%, -0.03em, balanced wrap): the one headline at the top left of the trim.
 - **Numeral** (480, 46px, 1, width 84%, tabular): the elapsed-seconds clock in the outline plate while a job runs; its unit is set at 0.45em in Press Grey.
 - **Title** (620, 16px): the current step name above the clock.
-- **Body** (400, 15px, 1.45): the correction-slip message; hints at 14px.
+- **Body** (400, 15px, 1.45): the correction-slip message.
+- **Hint** (400, 14px, 1.45): the intake hint and its text buttons, the masthead link, the camera plate's state line and the gesture key.
 - **Body Small** (400, 13px): the cold-start note (max 32ch) and the colophon.
 - **Label** (620, 13px, width 86%, 0.01em, sentence case): plate labels ("Photo", "Colouring page").
 - **Slug** (560, 12px, width 80%, 0.01em, tabular): the slug line; colour-bar patch names use the same voice at 11.5px, weight 580.

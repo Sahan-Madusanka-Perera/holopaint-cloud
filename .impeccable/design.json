@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-10-20T15:34:23.948682+00:00",
+  "generatedAt": "2026-10-20T15:36:14.685058+00:00",
   "title": "Design System: HoloPaint",
   "extensions": {
     "colorMeta": {
@@ -213,6 +213,36 @@
           "oklch(85% 0.215 358.4)",
           "oklch(95% 0.215 358.4)"
         ]
+      },
+      "ink-lift": {
+        "role": "primary",
+        "displayName": "Ink Lift",
+        "canonical": "#2e2e30",
+        "tonalRamp": [
+          "oklch(15% 0.004 286.2)",
+          "oklch(25% 0.004 286.2)",
+          "oklch(35% 0.004 286.2)",
+          "oklch(48% 0.004 286.2)",
+          "oklch(60% 0.004 286.2)",
+          "oklch(72% 0.004 286.2)",
+          "oklch(85% 0.004 286.2)",
+          "oklch(95% 0.004 286.2)"
+        ]
+      },
+      "cyan-wash": {
+        "role": "tertiary",
+        "displayName": "Cyan Wash",
+        "canonical": "#e3f2fa",
+        "tonalRamp": [
+          "oklch(15% 0.019 230.7)",
+          "oklch(25% 0.019 230.7)",
+          "oklch(35% 0.019 230.7)",
+          "oklch(48% 0.019 230.7)",
+          "oklch(60% 0.019 230.7)",
+          "oklch(72% 0.019 230.7)",
+          "oklch(85% 0.019 230.7)",
+          "oklch(95% 0.019 230.7)"
+        ]
       }
     },
     "typographyMeta": {
@@ -232,6 +262,10 @@
         "displayName": "Body",
         "purpose": "Correction-slip message."
       },
+      "hint": {
+        "displayName": "Hint",
+        "purpose": "Intake hint, masthead link, camera state line and gesture key."
+      },
       "body-small": {
         "displayName": "Note",
         "purpose": "Cold-start note and colophon."
@@ -247,6 +281,10 @@
       "button": {
         "displayName": "Button",
         "purpose": "Button labels."
+      },
+      "wordmark": {
+        "displayName": "Wordmark",
+        "purpose": "HoloPaint beside its registration mark, on the surround."
       }
     },
     "shadows": [
