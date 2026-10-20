@@ -67,7 +67,7 @@ def main() -> int:
     job = create_job(api)
     body, headers = multipart(job["upload"]["fields"], b"not an image", "text/plain")
     status, _ = request("POST", job["upload"]["url"], body, headers)
-    assert status == 403, f"S3 accepted a text/plain upload (HTTP {status})"
+    assert status == 403, f"expected S3 to reject a text/plain upload with 403, got HTTP {status}"
     print("ok   S3 rejects uploads that break the POST policy")
 
     # 2. the real flow

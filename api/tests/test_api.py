@@ -46,6 +46,7 @@ def test_create_job_returns_size_limited_presigned_post(table):
     status, body = call("POST /jobs")
 
     assert status == 201
+    assert body["upload"]["url"] == "https://holopaint-test.s3.ap-southeast-2.amazonaws.com/"  # regional, no 307
     job_id = body["job_id"]
     assert table.get_item(Key={"job_id": job_id})["Item"]["status"] == "PENDING"
     fields = body["upload"]["fields"]

@@ -34,7 +34,16 @@ logger.setLevel(logging.INFO)
 
 @functools.cache
 def _s3():
-    return boto3.client("s3", config=Config(signature_version="s3v4"))
+    # Sign against the regional endpoint: the global one (bucket.s3.amazonaws.com)
+    # answers 307 redirects for new buckets outside us-east-1, which browsers
+    # won't follow on a cross-origin upload.
+    region = os.environ.get("AWS_REGION", "ap-southeast-2")
+    return boto3.client(
+        "s3",
+        region_name=region,
+        endpoint_url=f"https://s3.{region}.amazonaws.com",
+        config=Config(signature_version="s3v4", s3={"addressing_style": "virtual"}),
+    )
 
 
 @functools.cache
