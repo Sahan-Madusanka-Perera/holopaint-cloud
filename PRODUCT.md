@@ -16,7 +16,7 @@ Recruiters and engineers reviewing Sahan Perera's portfolio for software, DevOps
 
 ## Product Purpose
 
-HoloPaint Cloud turns a photo into a colouring page: black outlines whose regions close, so every area can be flood-filled. The demo page exists to let a reviewer see the deployed system work end to end in under a minute.
+HoloPaint Cloud turns a photo into a colouring page: black outlines whose regions close, so every area can be flood-filled. The demo page exists to let a reviewer see the deployed system work end to end in under a minute, then paint the page by hand in front of their camera, as HoloDraw does locally.
 
 ## Positioning
 
@@ -29,6 +29,8 @@ The outlines come from a U-Net Sahan trained from scratch for HoloDraw, compress
 - Uploads and results are deleted after 24 hours.
 - API is throttled to 5 requests per second; at most 2 photos process at once.
 - Hosted in AWS ap-southeast-2 (Sydney).
+- Paint by hand: MediaPipe's hand landmarker (Tasks Vision 1.0.1 from jsDelivr, model from Google's model storage) runs in the browser, GPU when available. Video never leaves the device. Gestures follow HoloDraw: point to brush, pinch to fill or pick an ink, two fingers to move, fist to undo, thumb up to redo. A mouse or finger also works: tap to fill, drag to brush.
+- The camera needs permission and a secure context (localhost or HTTPS). Painting needs the outline read back over CORS, so it is offered only on the API's allowed origins.
 
 ## Brand Commitments
 

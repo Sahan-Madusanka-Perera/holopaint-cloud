@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-10-20T11:08:12.699093+00:00",
+  "generatedAt": "2026-10-20T13:00:40.659184+00:00",
   "title": "Design System: HoloPaint",
   "extensions": {
     "colorMeta": {
@@ -283,9 +283,14 @@
         "purpose": "Result lands offset by 5px,-4px with ink ghosts, then snaps to register."
       },
       {
+        "name": "camera-wait",
+        "value": "1s steps(1, end) infinite",
+        "purpose": "Camera plate mark blinks while the camera or hand model starts."
+      },
+      {
         "name": "reduced-motion",
         "value": "none",
-        "purpose": "Both animations removed; end states shown."
+        "purpose": "All three animations removed; end states shown."
       }
     ],
     "breakpoints": [
@@ -359,23 +364,53 @@
       "description": "Condensed tabular facts in the bottom margin; job numbers in black.",
       "html": "<p class=\"ds-slug\"><span>HoloPaint Cloud</span><span>AWS Lambda, Sydney</span><span class=\"ds-job\"><span>Job 2f62add2</span><span>1280×720</span><span>Traced in 12.5 s</span></span></p>",
       "css": ".ds-slug { display:flex; gap:20px; margin:0; padding:16px; background:#fff; font-family: var(--font, Archivo, system-ui, sans-serif); font-size:12px; font-weight:560; font-stretch:80%; letter-spacing:.01em; line-height:16px; white-space:nowrap; font-variant-numeric:tabular-nums; color:var(--ink-2,#5b5b5d); } .ds-job { display:flex; gap:16px; margin-left:auto; color:var(--ink,#141414); }"
+    },
+    {
+      "name": "Ink Tray",
+      "kind": "custom",
+      "refersTo": "ink-chip",
+      "description": "Paint mode: square ink chips, brush sizes and history; selected takes an outer ring, aim draws a static tick.",
+      "html": "<div class=\"ds-tray\" role=\"toolbar\" aria-label=\"Paint\"><span class=\"ds-grp\"><button class=\"ds-chip\" style=\"--chip:#141414\" aria-label=\"Black\" aria-pressed=\"false\"></button><button class=\"ds-chip\" style=\"--chip:#e8442e\" aria-label=\"Vermilion\" aria-pressed=\"true\"></button><button class=\"ds-chip is-aimed\" style=\"--chip:#4cb3ea\" aria-label=\"Sky\" aria-pressed=\"false\"></button><button class=\"ds-chip\" aria-label=\"Eraser\" aria-pressed=\"false\"></button></span><span class=\"ds-grp\"><button class=\"ds-chip ds-size\" style=\"--dot:5px\" aria-label=\"Small brush\"></button><button class=\"ds-chip ds-size\" style=\"--dot:10px\" aria-label=\"Medium brush\" aria-pressed=\"true\"></button></span><span class=\"ds-grp\"><button class=\"ds-chip ds-tool\" aria-label=\"Undo\"><svg viewBox=\"0 0 20 20\" width=\"18\" height=\"18\"><path d=\"M7.5 4.5 3.5 8.5l4 4M3.5 8.5h8.25a4.75 4.75 0 0 1 0 9.5H9\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\"/></svg></button></span></div>",
+      "css": ".ds-tray { display:flex; flex-wrap:wrap; align-items:center; gap:10px 18px; padding:20px; background:#fff; } .ds-grp { display:flex; gap:4px; } .ds-chip { position:relative; width:30px; height:30px; padding:0; border:0; border-radius:0; background:var(--chip,#fff); box-shadow:inset 0 0 0 1px rgba(20,20,20,.16); color:#141414; cursor:pointer; } .ds-chip[aria-pressed=\"true\"] { z-index:1; box-shadow:inset 0 0 0 1px rgba(20,20,20,.16), 0 0 0 2px #fff, 0 0 0 3.5px #141414; } .ds-chip:hover::before, .ds-chip.is-aimed::before { content:\"\"; position:absolute; left:0; right:0; bottom:-7px; height:2px; background:#141414; } .ds-size::after { content:\"\"; position:absolute; left:50%; top:50%; width:var(--dot); height:var(--dot); border-radius:50%; transform:translate(-50%,-50%); background:#e8442e; } .ds-tool { box-shadow:inset 0 0 0 1.5px #141414; } .ds-tool svg { display:block; margin:auto; } .ds-chip:focus-visible { outline:2px solid var(--cyan-ink,#0076ad); outline-offset:3px; }"
+    },
+    {
+      "name": "Gesture Key",
+      "kind": "custom",
+      "refersTo": null,
+      "description": "Paint mode: gestures and their actions; the row being read turns black, so the key is the live readout.",
+      "html": "<dl class=\"ds-key\"><div class=\"ds-row is-active\"><dt>Point</dt><dd>Brush</dd></div><div class=\"ds-row\"><dt>Pinch</dt><dd>Fill, or pick an ink</dd></div><div class=\"ds-row\"><dt>Two fingers</dt><dd>Move</dd></div><div class=\"ds-row\"><dt>Fist</dt><dd>Undo</dd></div><div class=\"ds-row\"><dt>Thumb up</dt><dd>Redo</dd></div></dl>",
+      "css": ".ds-key { display:grid; grid-template-columns:max-content 1fr; gap:8px 18px; margin:0; padding:20px; background:#fff; font-family: var(--font, Archivo, system-ui, sans-serif); font-size:14px; line-height:18px; } .ds-row { display:contents; } .ds-key dt { display:flex; align-items:center; gap:10px; font-weight:620; color:var(--ink-2,#5b5b5d); } .ds-key dt::before { content:\"\"; width:8px; height:8px; box-shadow:inset 0 0 0 1px currentColor; } .ds-key dd { margin:0; color:var(--ink-2,#5b5b5d); } .ds-row.is-active dt, .ds-row.is-active dd { color:var(--ink,#141414); } .ds-row.is-active dt::before { background:var(--ink,#141414); }"
+    },
+    {
+      "name": "Hand Cursor",
+      "kind": "custom",
+      "refersTo": null,
+      "description": "Paint mode: a registration target with a white keyline carrying the loaded ink as a round tip.",
+      "html": "<div class=\"ds-cur-wrap\"><span class=\"ds-cur\"><span class=\"ds-tip\"></span><svg viewBox=\"0 0 24 24\" width=\"28\" height=\"28\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"6.5\" fill=\"none\" stroke=\"currentColor\"/><path d=\"M12 1v22M1 12h22\" stroke=\"currentColor\"/><circle cx=\"12\" cy=\"12\" r=\"2.6\" fill=\"currentColor\"/></svg></span></div>",
+      "css": ".ds-cur-wrap { display:grid; place-items:center; height:96px; background:#ffd23f; } .ds-cur { position:relative; width:28px; height:28px; color:#141414; } .ds-cur svg { position:absolute; inset:0; filter:drop-shadow(0 0 1px #fff) drop-shadow(0 0 1px #fff); } .ds-tip { position:absolute; left:10.5px; top:10.5px; width:7px; height:7px; border-radius:50%; background:#e8442e; box-shadow:0 0 0 1px #fff, 0 0 0 2px rgba(20,20,20,.55); }"
     }
   ],
   "narrative": {
     "northStar": "The Proof Sheet",
-    "overview": "The page is a printer's proof sheet laid in a viewing booth. A single sheet of white proof stock sits on a neutral grey surround; everything inside the trim is the job, everything in the margin is the press's own bookkeeping. The photo is the colour proof, the colouring page is the black plate, and the job's progress is the colour bar: Upload is cyan, Queue is magenta, Trace is yellow, Ready is key black. Registration black does all the talking; the four process inks appear only as the press uses them, as patches and as marks of state.\n\nDensity is low and the composition is literal. Crop marks sit at the four corners of the trim, registration targets sit at mid-height in the side margins, the colour bar is centred in the top margin, and a condensed slug line runs along the bottom margin carrying fixed facts on the left and the finished job's numbers on the right. The sheet is top-anchored under the masthead and grows downward only; nothing re-centres when content appears.\n\nMotion is press-like, not app-like. There is no easing anywhere. State changes are two-frame steps: the current colour-bar patch blinks between tint and solid on a `steps(1)` cycle, and the finished outline lands off register with cyan and magenta ghosts, then snaps into place in two steps over 180ms. Reduced motion removes both and shows the end state.",
+    "overview": "The page is a printer's proof sheet laid in a viewing booth. A single sheet of white proof stock sits on a neutral grey surround; everything inside the trim is the job, everything in the margin is the press's own bookkeeping. The photo is the colour proof, the colouring page is the black plate, and the job's progress is the colour bar: Upload is cyan, Queue is magenta, Trace is yellow, Ready is key black. Registration black does all the talking; the four process inks appear only as the press uses them, as patches and as marks of state.\n\nDensity is low and the composition is literal. Crop marks sit at the four corners of the trim, registration targets sit at mid-height in the side margins, the colour bar is centred in the top margin, and a condensed slug line runs along the bottom margin carrying fixed facts on the left and the finished job's numbers on the right. The sheet is top-anchored under the masthead and grows downward only; nothing re-centres when content appears.\n\nOnce the page is ready, the reader can paint it by hand. The sheet turns into a press check: the photo plate gives way to a camera plate on the left, a third of the trim wide, showing the reader's hand in greyscale with its tracked skeleton; the colouring page takes the other two thirds, with an ink tray of square chips above it. The camera frame maps onto the tray and the page together, and a registration-target cursor carries the loaded ink. The outline is always multiplied over the paint, so the black plate prints on top of whatever the reader lays down.\n\nMotion is press-like, not app-like. There is no easing anywhere. State changes are two-frame steps: the current colour-bar patch blinks between tint and solid on a `steps(1)` cycle, and the finished outline lands off register with cyan and magenta ghosts, then snaps into place in two steps over 180ms. Reduced motion removes both and shows the end state.",
     "keyCharacteristics": [
       "White proof stock on a neutral grey viewing-booth surround.",
       "Registration black for type and controls; process inks only for state.",
       "Printer's marks as structure: crop marks, registration targets, colour bar, slug line.",
       "One family, Archivo, used across its width axis: wide headline, condensed labels and slug.",
       "Square corners everywhere; hairlines instead of borders.",
-      "Two-frame stepped motion, never eased."
+      "Two-frame stepped motion, never eased.",
+      "In paint mode, the reader's own inks on the page, and the outline always printed over them."
     ],
     "rules": [
       {
         "name": "The Inks Are State Rule",
-        "body": "Cyan, magenta and yellow never fill a surface, never colour body copy and never decorate. They appear as colour-bar patches, as the dragover and focus signals, as the error mark, as selection, and in the registration ghost. If an ink is on screen, it means something is happening.",
+        "body": "Cyan, magenta and yellow never fill a surface, never colour body copy and never decorate. They appear as colour-bar patches, as the dragover and focus signals, as the error mark, as selection, in the registration ghost, and as the tracked hand's skeleton on the camera plate. If an ink is on screen, it means something is happening.",
+        "section": "colors"
+      },
+      {
+        "name": "The Reader's Inks Rule",
+        "body": "The paint inks belong to the reader. They appear only as tray chips, on the page, and in the cursor's loaded tip; never in the interface itself.",
         "section": "colors"
       },
       {
@@ -412,7 +447,9 @@
       "**Do** keep the sheet top-anchored with a deeper top margin (72px, 58px mobile) for the colour bar; let it grow downward only.",
       "**Do** size plates from the photo's aspect ratio at full width, with a 15rem floor on the outline plate while progress or the slip shows.",
       "**Do** show real timings with tabular numerals.",
-      "**Do** write all copy in sentence case, plainly, with no em dashes."
+      "**Do** write all copy in sentence case, plainly, with no em dashes.",
+      "**Do** keep the outline multiplied over the paint, so no ink can cover a line.",
+      "**Do** show hover and aim as a static tick under a chip, never as movement."
     ],
     "donts": [
       "**Don't** fill surfaces, backgrounds or body text with cyan, magenta or yellow.",
@@ -421,7 +458,8 @@
       "**Don't** use eased transitions, fades or slides for state changes.",
       "**Don't** add a second typeface or uppercase tracked labels.",
       "**Don't** vertically centre the sheet or reveal empty action rows before a result exists.",
-      "**Don't** fake or animate progress that the job has not reported."
+      "**Don't** fake or animate progress that the job has not reported.",
+      "**Don't** use the reader's paint inks anywhere in the interface outside the tray, the page and the cursor tip."
     ]
   }
 }

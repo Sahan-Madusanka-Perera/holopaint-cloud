@@ -10,13 +10,13 @@
   <link rel="preload" href="fonts/archivo-latin.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="styles.css">
   <script src="config.js"></script>
-  <script src="app.js" defer></script>
+  <script type="module" src="app.js"></script>
 </head>
 <body>
 <!--
 THESIS: The page is a printer's proof sheet. The photo is the colour proof, the colouring page is the black plate, and the job's progress is the colour bar. It refuses the gradient dropzone hero.
 OWN-WORLD: White proof stock on a neutral grey viewing-booth surround. Registration-black ink; process cyan, magenta and yellow only in the colour bar and marks. Crop marks, registration targets, a slug line. Archivo wide for the headline, condensed for the slug. Square corners, hairline rules.
-STORY: A reviewer drops a photo, watches four inks fill as it uploads, queues, traces and lands, sees the outline snap into register, downloads it.
+STORY: A reviewer drops a photo, watches four inks fill as it uploads, queues, traces and lands, sees the outline snap into register, then paints it by hand in front of the camera and downloads it.
 FIRST VIEWPORT: The sheet anchored under the masthead. Colour bar centred in the top margin, headline at the top left of the trim, photo plate left with Choose photo at its centre, empty outline plate right, slug line along the bottom margin.
 FORM: Print-shop proof sheet, 4 of 7. Seed 2e1cf53e.
 FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, and DESIGN.md
@@ -26,6 +26,12 @@ FINISH: unreviewed and undocumented is unfinished; this build ends with the fini
       <circle cx="12" cy="12" r="6.5" fill="none" stroke="currentColor" stroke-width="1"/>
       <path d="M12 1v22M1 12h22" stroke="currentColor" stroke-width="1"/>
       <circle cx="12" cy="12" r="2.6" fill="currentColor"/>
+    </symbol>
+    <symbol id="undo" viewBox="0 0 20 20">
+      <path d="M7.5 4.5 3.5 8.5l4 4M3.5 8.5h8.25a4.75 4.75 0 0 1 0 9.5H9" fill="none" stroke="currentColor" stroke-width="1.6"/>
+    </symbol>
+    <symbol id="redo" viewBox="0 0 20 20">
+      <path d="m12.5 4.5 4 4-4 4M16.5 8.5H8.25a4.75 4.75 0 0 0 0 9.5H11" fill="none" stroke="currentColor" stroke-width="1.6"/>
     </symbol>
   </svg>
 
@@ -68,8 +74,49 @@ FINISH: unreviewed and undocumented is unfinished; this build ends with the fini
           </div>
         </section>
 
+        <section class="plate plate-camera" id="camera-plate" aria-labelledby="camera-label" hidden>
+          <div class="plate-head">
+            <h2 class="plate-label" id="camera-label">Camera</h2>
+            <button class="text-btn" type="button" id="camera-off" hidden>Turn off</button>
+          </div>
+          <div class="camera-body">
+            <div class="plate-field camera-field" id="camera-field">
+              <video class="camera-video" id="camera-video" playsinline muted></video>
+              <canvas class="camera-overlay" id="camera-overlay"></canvas>
+              <div class="camera-state" id="camera-state">
+                <svg class="camera-mark" aria-hidden="true"><use href="#reg"/></svg>
+                <svg class="camera-mark camera-caret" viewBox="0 0 28 28" aria-hidden="true">
+                  <path d="M4 24 L14 4 L24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="miter"/>
+                </svg>
+                <p class="camera-text" id="camera-text">Starting camera</p>
+                <button class="btn btn-line" type="button" id="camera-on" hidden>Turn on camera</button>
+              </div>
+              <p class="camera-tip" id="camera-tip" hidden>Raise one hand</p>
+            </div>
+            <div class="camera-foot">
+              <dl class="key" id="key">
+                <div class="key-row" data-gesture="draw"><dt>Point</dt><dd>Brush</dd></div>
+                <div class="key-row" data-gesture="select"><dt>Pinch</dt><dd>Fill, or pick an ink</dd></div>
+                <div class="key-row" data-gesture="navigate"><dt>Two fingers</dt><dd>Move</dd></div>
+                <div class="key-row" data-gesture="undo"><dt>Fist</dt><dd>Undo</dd></div>
+                <div class="key-row" data-gesture="redo"><dt>Thumb up</dt><dd>Redo</dd></div>
+              </dl>
+              <p class="key-note">With a mouse or finger, tap to fill and drag to brush.</p>
+              <p class="key-note">Video stays on this device.</p>
+            </div>
+          </div>
+        </section>
+
         <section class="plate plate-outline" id="outline-plate" aria-labelledby="outline-label">
           <h2 class="plate-label" id="outline-label">Colouring page</h2>
+          <div class="tray" id="tray" role="toolbar" aria-label="Paint" hidden>
+            <div class="tray-group" id="inks" role="group" aria-label="Ink"></div>
+            <div class="tray-group" id="sizes" role="group" aria-label="Brush size"></div>
+            <div class="tray-group" role="group" aria-label="History">
+              <button class="chip chip-tool" type="button" id="undo" aria-label="Undo" disabled><svg aria-hidden="true"><use href="#undo"/></svg></button>
+              <button class="chip chip-tool" type="button" id="redo" aria-label="Redo" disabled><svg aria-hidden="true"><use href="#redo"/></svg></button>
+            </div>
+          </div>
           <div class="plate-field">
             <svg class="plate-target" aria-hidden="true"><use href="#reg"/></svg>
             <div class="progress" id="progress" hidden>
@@ -90,18 +137,26 @@ FINISH: unreviewed and undocumented is unfinished; this build ends with the fini
       </div>
 
       <div class="actions" id="actions" hidden>
-        <button class="btn btn-line" type="button" data-action="reset">New photo</button>
-        <button class="btn btn-ink" type="button" id="download">Download PNG</button>
+        <button class="btn btn-line" type="button" data-action="reset" id="new-photo">New photo</button>
+        <button class="btn btn-line" type="button" id="download">Download PNG</button>
+        <button class="btn btn-ink" type="button" id="paint" hidden>Paint by hand</button>
+        <button class="btn btn-ink" type="button" id="done" hidden>Done</button>
       </div>
     </div>
 
     <p class="slug">
       <span class="slug-fixed">HoloPaint Cloud</span><span class="slug-fixed slug-extra">U-Net INT8</span><span class="slug-fixed">AWS Lambda, Sydney</span>
       <span class="slug-job" id="slug-job"></span>
+      <span class="slug-live" id="slug-live"></span>
     </p>
   </main>
 
   <p class="colophon">Photos and results are deleted after 24 hours.</p>
+
+  <div class="hand-cursor" id="hand-cursor" aria-hidden="true" hidden>
+    <span class="hand-cursor-tip"></span>
+    <svg class="hand-cursor-mark"><use href="#reg"/></svg>
+  </div>
 
   <p class="sr-only" id="status" aria-live="polite"></p>
   <input type="file" id="file" accept="image/jpeg,image/png,image/webp,image/heic,image/heif" hidden>

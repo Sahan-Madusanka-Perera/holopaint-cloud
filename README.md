@@ -18,7 +18,7 @@ browser ─► API Gateway ─► api Lambda ─► presigned POST ─► S3 ─
 | M3 Terraform: S3, SQS + DLQ, DynamoDB, Lambdas, HTTP API | ✅ |
 | M4 CI (GitHub Actions) + CD (CodePipeline/CodeBuild), smoke test + rollback | |
 | M5 CloudWatch dashboard + alarms, k6 load test | |
-| M6 Demo page | local ✅, hosting next |
+| M6 Demo page, with painting by hand | local ✅, hosting next |
 
 ## M1: compressing the model without changing its output
 
@@ -174,6 +174,45 @@ cp web/config.example.js web/config.js   # set window.HOLOPAINT_API to the api_u
 python3 -m http.server 8000 -d web       # open http://localhost:8000 (an allowed CORS origin)
 ```
 
+### Paint by hand
+
+Once the page is ready, **Paint by hand** opens the camera and you colour the page in
+the air, as in HoloDraw. The cloud does the heavy model; the browser does the
+real-time part. MediaPipe's hand landmarker runs in the page (WebAssembly, GPU when
+available) at about 30 fps, and no video frame leaves the device.
+
+| Gesture | Action |
+|---|---|
+| Point (index finger) | Brush |
+| Pinch | Fill the region, or pick an ink from the tray |
+| Two fingers | Move without painting |
+| Fist | Undo |
+| Thumb up | Redo |
+
+A mouse or finger works too: tap to fill, drag to brush.
+
+What changed from HoloDraw's gesture code on the way over:
+
+- **Gestures hold at any hand rotation.** HoloDraw compares fingertip and knuckle
+  heights, so MediaPipe's own sideways thumbs-up test photo reads as two raised
+  fingers and redo never fires. The port compares distances from the wrist instead.
+- **One undo per fist.** HoloDraw's undo cooldown hands back the previous gesture,
+  which is still undo, so a held fist undoes every frame (9 times in 10 frames).
+  Here an action fires once, when its gesture is entered; undo and redo must be
+  held for 220 ms, so a hand passing through a fist does nothing.
+- **Steadier aim.** A One Euro filter replaces the fixed EMA, a pinch has
+  hysteresis, and a fill lands where the fingertip pointed 120 ms before the pinch
+  closed, not where closing the pinch dragged it.
+- **Paint goes under the lines.** The outline is multiplied over the paint layer,
+  so a brush can never cover a line, and fills bleed 2 px under the lines so no
+  white halo shows. Undo stores only the rectangle each action changed.
+
+Tested two ways. `node --test "web/tests/*.test.mjs"` runs 13 unit tests on hand
+landmarks from MediaPipe's test photos (pointing, victory, fist, thumbs up) and on the
+fill. End to end, headless Chrome with a fake camera playing those photos drove the
+live page: pointing painted a stroke, a fist undid it, a thumbs-up redid it, at
+24 to 31 fps on the GPU delegate.
+
 ### Deploy
 
 ```bash
@@ -202,6 +241,7 @@ cp ../HoloDraw/holopaint_unet.pth artifacts/
 .venv/bin/python model/parity_eval.py --gate unet_int8_static.onnx   # -> results/parity.{md,json}
 
 .venv/bin/python -m pytest                  # 37 tests (worker + API)
+node --test "web/tests/*.test.mjs"          # 13 tests (gestures + fill)
 .venv/bin/python scripts/local_e2e.py       # build image, run it against moto, check upload -> PNG
 ```
 
@@ -213,6 +253,7 @@ worker/   handler.py  photo.py  pipeline.py  onnx_predictor.py  Dockerfile  test
 api/      app.py  tests/
 infra/    bootstrap/  app/  modules/{private_bucket,queue,jobs_table,worker,api}/
 scripts/  tf.sh  push_worker.sh  smoke_test.py  local_e2e.py
+web/      index.html  styles.css  app.js  gestures.js  hand.js  paint.js  fill.js  tests/
 results/  parity.md  parity.json                   (side-by-side PNGs are git-ignored)
 artifacts/  weights and ONNX files (git-ignored; S3 model registry from M3)
 ```

@@ -118,6 +118,20 @@ components:
     width: "58px"
     height: "12px"
     typography: "{typography.slug}"
+  ink-chip:
+    rounded: "{rounded.none}"
+    width: "30px"
+    height: "30px"
+  ink-chip-selected:
+    rounded: "{rounded.none}"
+    width: "30px"
+    height: "30px"
+  tool-chip:
+    backgroundColor: "transparent"
+    textColor: "{colors.ink}"
+    rounded: "{rounded.none}"
+    width: "30px"
+    height: "30px"
 ---
 
 # Design System: HoloPaint
@@ -130,6 +144,8 @@ The page is a printer's proof sheet laid in a viewing booth. A single sheet of w
 
 Density is low and the composition is literal. Crop marks sit at the four corners of the trim, registration targets sit at mid-height in the side margins, the colour bar is centred in the top margin, and a condensed slug line runs along the bottom margin carrying fixed facts on the left and the finished job's numbers on the right. The sheet is top-anchored under the masthead and grows downward only; nothing re-centres when content appears.
 
+Once the page is ready, the reader can paint it by hand. The sheet turns into a press check: the photo plate gives way to a camera plate on the left, a third of the trim wide, showing the reader's hand in greyscale with its tracked skeleton; the colouring page takes the other two thirds, with an ink tray of square chips above it. The camera frame maps onto the tray and the page together, and a registration-target cursor carries the loaded ink. The outline is always multiplied over the paint, so the black plate prints on top of whatever the reader lays down.
+
 Motion is press-like, not app-like. There is no easing anywhere. State changes are two-frame steps: the current colour-bar patch blinks between tint and solid on a `steps(1)` cycle, and the finished outline lands off register with cyan and magenta ghosts, then snaps into place in two steps over 180ms. Reduced motion removes both and shows the end state.
 
 **Key Characteristics:**
@@ -139,6 +155,7 @@ Motion is press-like, not app-like. There is no easing anywhere. State changes a
 - One family, Archivo, used across its width axis: wide headline, condensed labels and slug.
 - Square corners everywhere; hairlines instead of borders.
 - Two-frame stepped motion, never eased.
+- In paint mode, the reader's own inks on the page, and the outline always printed over them.
 
 ## Colors
 
@@ -166,8 +183,13 @@ A near-achromatic print shop: grey surround, white stock, registration black, wi
 - **Outline Plate White** (plate-outline): the empty outline plate, a hair off stock.
 - **Hairline** (hair): the 1px inset rule that frames the outline plate.
 
+### The Reader's Inks
+Twelve paint inks and paper, held as content in `app.js`, not as tokens: Black #141414, Vermilion #e8442e, Orange #f5921e, Yellow #ffd23f, Leaf #8cc63f, Green #1e9e58, Sky #4cb3ea, Blue #2f5fd0, Violet #7d4fc4, Rose #f283b6, Peach #f8c9a0, Umber #8a5634, and Paper (the eraser, which paints back to bare stock).
+
 ### Named Rules
-**The Inks Are State Rule.** Cyan, magenta and yellow never fill a surface, never colour body copy and never decorate. They appear as colour-bar patches, as the dragover and focus signals, as the error mark, as selection, and in the registration ghost. If an ink is on screen, it means something is happening.
+**The Inks Are State Rule.** Cyan, magenta and yellow never fill a surface, never colour body copy and never decorate. They appear as colour-bar patches, as the dragover and focus signals, as the error mark, as selection, in the registration ghost, and as the tracked hand's skeleton on the camera plate. If an ink is on screen, it means something is happening.
+
+**The Reader's Inks Rule.** The paint inks belong to the reader. They appear only as tray chips, on the page, and in the cursor's loaded tip; never in the interface itself.
 
 **The Press Ink Rule.** Raw process cyan and magenta are for patches and fields; any ink that must read as a line or as text on white uses the darker press variant (cyan-ink, magenta-ink).
 
@@ -204,6 +226,8 @@ The page is a centred column on the surround: masthead, sheet, colophon, all at 
 The sheet is top-anchored, sitting `clamp(4px, 2.5vh, 24px)` below the masthead, never vertically centred. Its padding is the printer's margin: a side and bottom margin (56px desktop, 40px mobile) and a deeper top margin (72px desktop, 58px mobile) that carries the colour bar. The trim inside holds the headline (30px below it, 22px on mobile) and two equal plates in a 1fr 1fr grid with a 28px gap, stacking to one column with a 22px gap under 760px.
 
 Plates take the photo's aspect ratio (defaulting to 4:3) at full column width, capped at min(72vh, 860px), so neither plate letterboxes. While progress or the correction slip is showing, the outline plate holds a 15rem height floor. The actions row is absent until a result exists, then appears right-aligned below the plates with a 12px gap; on mobile the two buttons split the row equally.
+
+In paint mode the plates become a 1fr 2fr grid with a 36px column gap: the camera plate on the left, the page on the right. Subgrid rows line the camera field up with the page field whatever height the ink tray wraps to, so the camera plate's label shares the page label's baseline and an empty band sits beside the tray. The gesture key sits directly under the camera field. Under 760px the page comes first (label, tray, page), then the camera plate with the field and the key side by side at 44:56. The actions row swaps to Download PNG and Done, with Done primary.
 
 Crop marks are 22px hairlines set 10px outside the trim corners (16px and 7px on mobile). Registration targets (18px) sit at half-margin, mid-height, and are removed on mobile. The slug sits in the bottom margin, inset 16px from the trim edges; on mobile the extra fixed facts drop out, and once a job finishes the fixed facts yield entirely to the job numbers.
 
@@ -249,7 +273,22 @@ Centred in the outline plate: step name (Title), a large condensed tabular clock
 Centred in the outline plate, max 340px: a Correction Magenta caret mark, a plain sentence saying what went wrong and how to fix it, and a line button to try again.
 
 ### Slug Line
-Condensed tabular text in the bottom margin. Fixed facts in Press Grey on the left; after a job, the job id, dimensions and timings in black on the right.
+Condensed tabular text in the bottom margin. Fixed facts in Press Grey on the left; after a job, the job id, dimensions and timings in black on the right. In paint mode the job numbers yield to live tracking facts: "Hand tracking on device", the delegate (GPU or CPU), and the measured frame rate.
+
+### The Page
+The result surface: a white stock block sized exactly to the outline's aspect, with the paint layer (a canvas at the outline's own pixel size) below and the outline image above it in `mix-blend-mode: multiply`. Paint can never cover a line. Fills bleed 2px under the lines so no white halo shows. In paint mode the mouse cursor over the page is the registration target.
+
+### Ink Tray (paint mode)
+A wrapping row of three groups above the page, 18px apart: inks, brush sizes, history. Chips are 30px squares on 4px gaps with a 1px inset edge at 16% ink, like colour-bar patches. The selected chip takes a 2px stock ring and a 1.5px black ring outside its box. Hover, and the hand's aim, draw a 2px black tick 7px under the chip; nothing moves, so the aim cannot flicker. Size chips show a dot in the loaded ink (5, 10, 16px). Undo and redo are tool chips with a 1.5px inset black rule and authored 1.6px-stroke arrow icons; disabled at 35%.
+
+### Camera Plate (paint mode)
+Labelled "Camera", with a "Turn off" text button (13px, underlined) on the label's baseline. The field takes the video's aspect, shows the mirrored feed in greyscale, and overlays the reach (the part of the frame mapped onto the page) as white crop marks, plus the tracked hand as a process-cyan skeleton with white joints. While starting, the registration mark blinks on `steps(1)` with "Starting camera" or "Loading hand tracking"; problems use the correction caret in Correction Magenta, one plain sentence, and a line button. After a second without a hand, a stock-white label at the bottom left says "Raise one hand".
+
+### Gesture Key
+A two-column list under the camera field (14px, 13px under 760px): gesture in weight 620, action in regular, both Press Grey, each row led by an 8px hairline box. The gesture being read turns its row black and fills its box, so the key doubles as the live readout. Two 13px notes follow: the mouse and touch fallback, and that video stays on the device.
+
+### Hand Cursor
+A 28px registration target with a white keyline, fixed to the viewport and blind to the pointer, carrying a round tip in the loaded ink (paper shows as stock with a grey edge). Pointing hides the target and grows the tip to the brush size; a pinch shrinks the target to 72%. The tip is the one round shape on the sheet besides the registration targets: it is the brush.
 
 ## Do's and Don'ts
 
@@ -262,6 +301,8 @@ Condensed tabular text in the bottom margin. Fixed facts in Press Grey on the le
 - **Do** size plates from the photo's aspect ratio at full width, with a 15rem floor on the outline plate while progress or the slip shows.
 - **Do** show real timings with tabular numerals.
 - **Do** write all copy in sentence case, plainly, with no em dashes.
+- **Do** keep the outline multiplied over the paint, so no ink can cover a line.
+- **Do** show hover and aim as a static tick under a chip, never as movement.
 
 ### Don't:
 - **Don't** fill surfaces, backgrounds or body text with cyan, magenta or yellow.
@@ -271,3 +312,4 @@ Condensed tabular text in the bottom margin. Fixed facts in Press Grey on the le
 - **Don't** add a second typeface or uppercase tracked labels.
 - **Don't** vertically centre the sheet or reveal empty action rows before a result exists.
 - **Don't** fake or animate progress that the job has not reported.
+- **Don't** use the reader's paint inks anywhere in the interface outside the tray, the page and the cursor tip.
