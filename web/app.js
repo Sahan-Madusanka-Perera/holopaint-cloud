@@ -479,6 +479,7 @@ function reset({ focus = true } = {}) {
   source = null;
   delete sheet.dataset.source;
   painter.clear();
+  outline?.remove();  // the page frame is reused, so take the old outline off it
   outline = null;
   photoMedia.replaceChildren();
   outlineMedia.replaceChildren();
@@ -598,7 +599,7 @@ pageFrame.append(pageSheet, loupe);
 let outline = null;  // the outline image on the page
 
 function mountPage(img) {
-  outline?.remove();
+  pageSheet.querySelectorAll("img").forEach((node) => node.remove());  // one outline, ever
   outline = img;
   if (img) pageSheet.append(img);
   outlineMedia.replaceChildren(pageFrame);
