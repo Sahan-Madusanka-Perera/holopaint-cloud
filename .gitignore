@@ -12,3 +12,10 @@ results/*.png
 
 # Personal account setup notes (kept local)
 docs/aws-setup.md
+
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.*
+infra/app/.build/
+*.tfplan
