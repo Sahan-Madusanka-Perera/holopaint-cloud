@@ -9,14 +9,13 @@ the U-Net I trained from scratch on BSDS500 for
 browser ─► API Gateway ─► api Lambda ─► presigned POST ─► S3 ─► SQS (+DLQ) ─► worker Lambda (ONNX INT8) ─► S3
 ```
 
-**Status:** M1 (model compression) and M2 (worker container) are done. Next is M3
-(Terraform: deploy to AWS).
+**Status:** deployed on AWS (Sydney, `ap-southeast-2`); M1–M3 done. Next is M4 (CI/CD).
 
 | Milestone | |
 |---|---|
 | M1 Compress the model (ONNX INT8) + parity gate | ✅ |
 | M2 Worker Lambda container + tests + local end-to-end | ✅ |
-| M3 Terraform: S3, SQS + DLQ, DynamoDB, Lambdas, HTTP API | in progress |
+| M3 Terraform: S3, SQS + DLQ, DynamoDB, Lambdas, HTTP API | ✅ |
 | M4 CI (GitHub Actions) + CD (CodePipeline/CodeBuild), smoke test + rollback | |
 | M5 CloudWatch dashboard + alarms, k6 load test | |
 | M6 Demo page | |
@@ -108,6 +107,70 @@ faster. The Lambda sets `ORT_THREADS` to match its vCPUs.
 **Portability:** given the same lossless input, the Linux arm64 container's outline
 is **pixel-identical** to the macOS one (`worker/tests/golden/`).
 
+## M3: infrastructure as code, deployed
+
+Two Terraform stacks, both built from reusable modules (`private_bucket`, `queue`,
+`jobs_table`, `worker`, `api`):
+
+- **`infra/bootstrap`**: the remote-state bucket (S3-native locking with
+  `use_lockfile`, no DynamoDB lock table), a versioned model-registry bucket, and
+  the ECR repository. ECR uses immutable git-SHA tags, scans on push, keeps the
+  last 5 images, and lets only Lambda pull. Bootstrap's own state lives in the
+  bucket it created.
+- **`infra/app`** (29 resources):
+  - A TLS-only media bucket that deletes everything after 1 day, with CORS for the
+    demo origins.
+  - Upload events go to **SQS**, with a **DLQ** after 3 attempts and a visibility
+    timeout of 6× the worker timeout.
+  - The **worker Lambda** (arm64 container, 3008 MB, `ORT_THREADS=2`) is invoked
+    through a `live` alias, with partial batch failures and a cap of 2 concurrent
+    invocations as the cost ceiling.
+  - A **DynamoDB** jobs table (provisioned 5/5, TTL).
+  - A throttled **HTTP API** (5 rps, burst 10) in front of the API Lambda.
+  - Each function gets its own least-privilege role, and logs are kept for 14 days.
+
+No access keys exist anywhere. `scripts/tf.sh` runs Terraform with the short-lived
+credentials from `aws login`.
+
+**Live smoke test** (`scripts/smoke_test.py`) drives the deployed system the way a
+browser does: create a job → upload through the presigned POST → poll → download
+the PNG. It also checks that S3 rejects a non-image upload and that the API
+rejects bad job IDs.
+
+| Measured on Lambda (arm64, 3008 MB) | |
+|---|---:|
+| Cold start (init: image + imports + model load) | 9.2 s |
+| Warm, 640×480 photo | ≈ 5.1 s |
+| Upload → DONE, end to end | 5.7–9.0 s |
+| Peak memory | 714 MB |
+
+Inference is about 3.8× slower than on an M4. arm64 Lambdas run on Graviton2, which
+is much slower per core and has no `i8mm` INT8 instructions. Tuning that (memory,
+threads, FP32 vs INT8) is M5.
+
+**What deploying caught:**
+- **Presigned POSTs pointed at S3's global endpoint**, which answers `307` for new
+  buckets outside us-east-1. Browsers won't follow a redirect on a cross-origin
+  upload. The API now signs against `s3.<region>.amazonaws.com`, and a unit test
+  pins it.
+- **ECR's scan found 12 HIGH CVEs** (openssl, pcre2, curl, rpm), all in the Lambda
+  base image's Amazon Linux packages. A plain `dnf upgrade` was a no-op, because
+  AL2023 locks repositories to the image's release. `dnf upgrade
+  --releasever=latest` took the image from 12 HIGH / 20 MEDIUM / 5 LOW findings
+  to **0**.
+
+### Deploy
+
+```bash
+aws login --profile holopaint
+scripts/tf.sh -chdir=infra/bootstrap init -backend-config=bucket=holopaint-tfstate-<account-id>
+scripts/tf.sh -chdir=infra/bootstrap apply
+scripts/push_worker.sh            # prints worker_image_tag and model_version
+scripts/tf.sh -chdir=infra/app init -backend-config=bucket=holopaint-tfstate-<account-id>
+scripts/tf.sh -chdir=infra/app apply -var worker_image_tag=<tag> -var model_version=<version>
+.venv/bin/python scripts/smoke_test.py "$(scripts/tf.sh -chdir=infra/app output -raw api_url)"
+```
+
 ## Reproduce
 
 Needs the HoloDraw repo next to this one (for the weights and the BSDS500/BIPED
@@ -123,7 +186,7 @@ cp ../HoloDraw/holopaint_unet.pth artifacts/
 .venv/bin/python model/quantize.py          # -> artifacts/unet_int8_{static,dynamic}.onnx
 .venv/bin/python model/parity_eval.py --gate unet_int8_static.onnx   # -> results/parity.{md,json}
 
-.venv/bin/python -m pytest                  # 26 worker tests
+.venv/bin/python -m pytest                  # 37 tests (worker + API)
 .venv/bin/python scripts/local_e2e.py       # build image, run it against moto, check upload -> PNG
 ```
 
@@ -132,7 +195,9 @@ cp ../HoloDraw/holopaint_unet.pth artifacts/
 ```
 model/    unet.py  common.py  check_port.py  export_onnx.py  quantize.py  parity_eval.py
 worker/   handler.py  photo.py  pipeline.py  onnx_predictor.py  Dockerfile  tests/
-scripts/  local_e2e.py
+api/      app.py  tests/
+infra/    bootstrap/  app/  modules/{private_bucket,queue,jobs_table,worker,api}/
+scripts/  tf.sh  push_worker.sh  smoke_test.py  local_e2e.py
 results/  parity.md  parity.json                   (side-by-side PNGs are git-ignored)
 artifacts/  weights and ONNX files (git-ignored; S3 model registry from M3)
 ```
