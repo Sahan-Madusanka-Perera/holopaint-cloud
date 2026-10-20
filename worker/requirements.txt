@@ -1,0 +1,6 @@
+# Lambda worker runtime: no torch, ONNX Runtime only. boto3 comes from the Lambda runtime.
+onnxruntime==1.31.0
+opencv-contrib-python-headless==4.14.0.94
+numpy==2.5.4
+pillow==13.0.0
+aws-lambda-powertools==3.36.0

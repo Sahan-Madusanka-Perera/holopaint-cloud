@@ -1,0 +1,5 @@
+# Allow-list: the image needs the worker code and the deployed model, nothing else.
+*
+!worker/*.py
+!worker/requirements.txt
+!artifacts/unet_int8_static.onnx

@@ -1,0 +1,14 @@
+.venv/
+__pycache__/
+*.pyc
+
+# Model weights and exports: too big for git; published to the S3 model registry (M3)
+artifacts/*
+!artifacts/.gitkeep
+
+# Side-by-side PNGs are derived from BSDS500/BIPED images, which we don't redistribute
+results/*.png
+.pytest_cache/
+
+# Personal account setup notes (kept local)
+docs/aws-setup.md

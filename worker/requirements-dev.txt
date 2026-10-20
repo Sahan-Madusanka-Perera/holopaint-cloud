@@ -1,0 +1,4 @@
+-r requirements.txt
+boto3==1.43.115
+moto[s3,dynamodb]==5.2.4
+pytest==9.1.1
