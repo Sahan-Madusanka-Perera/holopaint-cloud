@@ -15,7 +15,7 @@ import pytest
 
 from conftest import MODEL, needs_model, shapes_image
 from onnx_predictor import OnnxPredictor
-from pipeline import colouring_page
+from pipeline import DEFAULT_THRESHOLD, DETAIL_THRESHOLDS, colouring_page, detail_outlines, suggested_detail
 
 GOLDEN = Path(__file__).parent / "golden" / "shapes_outline.png"
 MIN_IOU = 0.97
@@ -63,3 +63,25 @@ def test_batch_size_does_not_change_output(predictor):
     one = colouring_page(image, predictor, batch_size=1).outline
     eight = colouring_page(image, predictor, batch_size=8).outline
     assert edge_iou(one, eight) >= 0.999
+
+
+@needs_model
+def test_detail_levels_share_one_model_pass(predictor):
+    image = shapes_image()
+    result = colouring_page(image, predictor)
+    outlines = detail_outlines(image, result.probability)
+    assert len(outlines) == len(DETAIL_THRESHOLDS) and DETAIL_THRESHOLDS[-1] == DEFAULT_THRESHOLD
+    assert np.array_equal(outlines[-1], result.outline)  # the top level is exactly HoloDraw's output
+    ink = [np.count_nonzero(o == 0) for o in outlines]
+    assert ink == sorted(ink)
+
+
+def test_suggested_detail_is_the_densest_colourable_level():
+    def page(ink_share):
+        outline = np.full((100, 100), 255, np.uint8)
+        outline.flat[: int(ink_share * outline.size)] = 0
+        return outline
+
+    assert suggested_detail([page(0.02), page(0.1), page(0.3)]) == 1
+    assert suggested_detail([page(0.02), page(0.1), page(0.15)]) == 2
+    assert suggested_detail([page(0.25), page(0.4)]) == 0

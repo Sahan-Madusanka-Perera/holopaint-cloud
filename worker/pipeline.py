@@ -8,8 +8,9 @@ on ONNX Runtime in the Lambda worker. Nothing here imports torch.
 Behaviour must stay identical to HoloDraw; model/check_port.py verifies that.
 """
 
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
-from typing import Callable, List
+from typing import Callable, List, Sequence
 
 import cv2
 import numpy as np
@@ -22,6 +23,12 @@ if not hasattr(cv2, "ximgproc"):
 TILE = 256
 STRIDE = TILE * 3 // 4  # 192 -> 25% overlap, as in HoloDraw
 DEFAULT_THRESHOLD = 0.3  # HOLOPAINT_DEFAULT_THRESHOLD in HoloDraw/config.py
+
+# HoloDraw lets the user step the threshold with +/- before painting. The worker
+# traces a fixed ladder of thresholds instead, so the page can switch instantly.
+# Least to most detail; the last step is HoloDraw's default.
+DETAIL_THRESHOLDS = (0.55, 0.45, 0.40, 0.35, DEFAULT_THRESHOLD)
+BUSY_INK = 0.2  # an outline with more than this share of black pixels is too dense to colour
 
 _MEAN = np.array([0.485, 0.456, 0.406], dtype=np.float32).reshape(3, 1, 1)
 _STD = np.array([0.229, 0.224, 0.225], dtype=np.float32).reshape(3, 1, 1)
@@ -198,3 +205,23 @@ def colouring_page(
     """BGR photo -> black-on-white outline with closed, fillable regions."""
     probability, tiles = edge_probability(image, predict, batch_size)
     return Result(outline_from_probability(image, probability, threshold), probability, tiles)
+
+
+def detail_outlines(
+    image: np.ndarray,
+    probability: np.ndarray,
+    thresholds: Sequence[float] = DETAIL_THRESHOLDS,
+    workers: int = 2,
+) -> List[np.ndarray]:
+    """One outline per threshold, from a single model pass. OpenCV releases the
+    GIL, so the post-processing runs in parallel on the Lambda's vCPUs."""
+    with ThreadPoolExecutor(max_workers=max(1, workers)) as pool:
+        return list(pool.map(lambda t: outline_from_probability(image, probability, t), thresholds))
+
+
+def suggested_detail(outlines: Sequence[np.ndarray]) -> int:
+    """Index of the most detailed outline that is still open enough to colour."""
+    for i in range(len(outlines) - 1, -1, -1):
+        if np.count_nonzero(outlines[i] == 0) <= BUSY_INK * outlines[i].size:
+            return i
+    return 0

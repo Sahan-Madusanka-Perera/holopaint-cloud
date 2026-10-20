@@ -25,7 +25,7 @@ from aws_lambda_powertools.metrics import MetricUnit
 
 from onnx_predictor import OnnxPredictor
 from photo import InvalidPhoto, encode_png, load_photo
-from pipeline import colouring_page
+from pipeline import DETAIL_THRESHOLDS, detail_outlines, edge_probability, suggested_detail
 
 MODEL_PATH = os.environ.get("MODEL_PATH", "/opt/model/model.onnx")
 MODEL_VERSION = os.environ.get("MODEL_VERSION", "dev")
@@ -51,6 +51,10 @@ def _jobs():
 def _predictor() -> OnnxPredictor:
     threads = int(os.environ["ORT_THREADS"]) if os.environ.get("ORT_THREADS") else None
     return OnnxPredictor(MODEL_PATH, threads=threads)
+
+
+def _workers() -> int:
+    return int(os.environ.get("ORT_THREADS") or 2)
 
 
 def _set_status(job_id: str, status: str, **fields) -> None:
@@ -92,20 +96,27 @@ def process_upload(bucket: str, key: str) -> None:
         metrics.add_metric(name="JobsRejected", unit=MetricUnit.Count, value=1)
         return
 
-    result = colouring_page(image, _predictor())
+    # One model pass, then an outline per detail level. The most detailed level is
+    # HoloDraw's default and keeps the plain result key.
+    probability, tiles = edge_probability(image, _predictor())
+    outlines = detail_outlines(image, probability, workers=_workers())
     result_key = f"{RESULT_PREFIX}{job_id}.png"
-    _s3().put_object(Bucket=bucket, Key=result_key, Body=encode_png(result.outline), ContentType="image/png")
+    detail_keys = [f"{RESULT_PREFIX}{job_id}-{level}.png" for level in range(1, len(outlines))] + [result_key]
+    for key, outline in zip(detail_keys, outlines):
+        _s3().put_object(Bucket=bucket, Key=key, Body=encode_png(outline), ContentType="image/png")
+    detail = suggested_detail(outlines)
 
     elapsed_ms = round((time.perf_counter() - started) * 1000)
     height, width = image.shape[:2]
     _set_status(
         job_id, "DONE",
-        result_key=result_key, width=width, height=height,
-        tiles=result.tiles, duration_ms=elapsed_ms, model_version=MODEL_VERSION,
+        result_key=result_key, detail_keys=detail_keys, detail=detail, width=width, height=height,
+        tiles=tiles, duration_ms=elapsed_ms, model_version=MODEL_VERSION,
     )
     metrics.add_metric(name="JobLatency", unit=MetricUnit.Milliseconds, value=elapsed_ms)
-    metrics.add_metric(name="TilesPerImage", unit=MetricUnit.Count, value=result.tiles)
-    logger.info("job done", extra={"job_id": job_id, "ms": elapsed_ms, "size": f"{width}x{height}"})
+    metrics.add_metric(name="TilesPerImage", unit=MetricUnit.Count, value=tiles)
+    logger.info("job done", extra={"job_id": job_id, "ms": elapsed_ms, "size": f"{width}x{height}",
+                                   "detail": DETAIL_THRESHOLDS[detail]})
 
 
 def _s3_objects(body: str):

@@ -79,6 +79,24 @@ def test_done_job_links_to_result_and_hides_internals(table):
     assert "result_key" not in body and "model_version" not in body
 
 
+def test_done_job_links_every_detail_level(table):
+    job_id = "e" * 32
+    keys = [f"results/{job_id}-{n}.png" for n in range(1, 5)] + [f"results/{job_id}.png"]
+    table.put_item(Item={"job_id": job_id, "status": "DONE", "result_key": keys[-1],
+                         "detail_keys": keys, "detail": 3})
+    _, body = call("GET /jobs/{job_id}", job_id)
+    assert body["detail"] == 3
+    assert [url.split("?")[0].rsplit("/", 1)[1] for url in body["detail_urls"]] == [k.split("/")[1] for k in keys]
+    assert "detail_keys" not in body
+
+
+def test_older_jobs_have_no_detail_levels(table):
+    job_id = "d" * 32
+    table.put_item(Item={"job_id": job_id, "status": "DONE", "result_key": f"results/{job_id}.png"})
+    _, body = call("GET /jobs/{job_id}", job_id)
+    assert "detail_urls" not in body and "detail" not in body
+
+
 @pytest.mark.parametrize("job_id", ["", "abc", "../../etc", "F" * 32, "g" * 32])
 def test_malformed_job_id_is_rejected(table, job_id):
     assert call("GET /jobs/{job_id}", job_id)[0] == 400

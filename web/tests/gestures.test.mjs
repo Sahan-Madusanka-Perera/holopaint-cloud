@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { Gesture, GestureFilter, OneEuro, REACH, classify, isPinch, toPoints, toRect } from "../gestures.js";
+import { Gesture, GestureFilter, OneEuro, REACH, classify, isPinch, palmSize, pushZoom, toPoints, toRect } from "../gestures.js";
 
 const { poses } = JSON.parse(readFileSync(new URL("./fixtures/hands.json", import.meta.url), "utf8"));
 const points = (name) => toPoints(poses[name].landmarks.map(([x, y]) => ({ x, y })), poses[name].aspect);
@@ -20,6 +20,33 @@ test("classifies MediaPipe's test photos", () => {
   assert.equal(classify(points("fist")), Gesture.UNDO);
   // HoloDraw's height rule reads this sideways hand as two raised fingers.
   assert.equal(classify(points("thumb_up")), Gesture.REDO);
+});
+
+// No test photo raises three fingers, so straighten the ring finger of the victory
+// hand along its middle finger: each joint keeps the middle finger's offset from its knuckle.
+function raise(p, finger, like = 9) {
+  const out = p.map((q) => ({ ...q }));
+  for (let k = 1; k <= 3; k++) {
+    out[finger + k] = { x: p[finger].x + p[like + k].x - p[like].x, y: p[finger].y + p[like + k].y - p[like].y };
+  }
+  return out;
+}
+
+test("three fingers hold the page; four or five do nothing", () => {
+  const three = raise(points("victory"), 13);
+  assert.equal(classify(three), Gesture.ZOOM);
+  for (const degrees of [-45, 90]) assert.equal(classify(rotate(three, degrees)), Gesture.ZOOM, `${degrees}°`);
+  assert.equal(classify(raise(three, 17)), Gesture.IDLE);
+});
+
+test("pushing the hand toward the camera zooms in, pulling it back zooms out", () => {
+  const p = points("pointing_up");
+  const grow = (q, k) => q.map(({ x, y }) => ({ x: p[0].x + (x - p[0].x) * k, y: p[0].y + (y - p[0].y) * k }));
+  assert.ok(Math.abs(palmSize(grow(p, 1.3)) / palmSize(p) - 1.3) < 1e-9, "palm size scales with the hand");
+  assert.equal(pushZoom(1), 1);
+  assert.equal(pushZoom(1.04), 1, "a steady hand's wobble does not zoom");
+  assert.ok(pushZoom(1.3) > 1.5 && pushZoom(1.3) < 2, `x${pushZoom(1.3).toFixed(2)} for a hand 30% larger`);
+  assert.ok(Math.abs(pushZoom(1.3) * pushZoom(1 / 1.3) - 1) < 1e-9, "pulling back undoes pushing in");
 });
 
 test("holds at any hand rotation", () => {

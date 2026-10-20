@@ -84,7 +84,7 @@ loads the photo, runs the pipeline, writes `results/<job_id>.png` and marks the 
 - **Observability:** Powertools JSON logs and EMF metrics (`JobLatency`,
   `TilesPerImage`, `JobsFailed`, `JobsRejected`, cold starts).
 
-**Tests:** 26 pytest tests (`worker/tests`). Photo validation, a golden outline,
+**Tests:** 29 pytest tests (`worker/tests`). Photo validation, a golden outline,
 and handler behaviour against moto (fake S3 + DynamoDB): success, duplicate
 delivery, identical re-processing, a rejected upload, retry then fail on the last
 attempt, S3 test events, path tricks, and a mixed batch.
@@ -174,6 +174,20 @@ cp web/config.example.js web/config.js   # set window.HOLOPAINT_API to the api_u
 python3 -m http.server 8000 -d web       # open http://localhost:8000 (an allowed CORS origin)
 ```
 
+### Detail levels
+
+HoloDraw lets you step the edge threshold with `+`/`-` before painting. The worker
+does the same work up front: one model pass, then the post-processing at five
+thresholds (0.55, 0.45, 0.40, 0.35 and HoloDraw's default 0.30), written as five
+PNGs. The page switches between them instantly with a **Detail** ladder (or `[` and
+`]`), and the paint stays put. The default level is the most detailed one whose
+outline is at most 20% ink. On textured photos (foliage, gravel) 0.30 gives
+30–60% ink, which is too dense to colour, and the suggested level drops to 0.35–0.40.
+
+The extra levels cost 0.3–1.5 s on top of a 7.5 s trace for a 1600×1200 photo (M4,
+2 threads), run on two threads in parallel. The most detailed level keeps the old
+result key, so it is still byte-for-byte HoloDraw's output.
+
 ### Paint by hand
 
 Once the page is ready, **Paint by hand** opens the camera and you colour the page in
@@ -183,15 +197,32 @@ available) at about 30 fps, and no video frame leaves the device.
 
 | Gesture | Action |
 |---|---|
-| Point (index finger) | Brush |
-| Pinch | Fill the region, or pick an ink from the tray |
-| Two fingers | Move without painting |
+| Point (index finger) | Brush, erase, or size a shape |
+| Pinch | Fill the region, or pick from the tray |
+| Two fingers | Move without painting, or place the shape |
+| Three fingers | Hold the page: move to pan, push toward the camera to zoom |
 | Fist | Undo |
 | Thumb up | Redo |
 
-A mouse or finger works too: tap to fill, drag to brush.
+Everything HoloDraw and its HoloPaint mode can do is here:
 
-What changed from HoloDraw's gesture code on the way over:
+- **Tools:** brush, eraser, fill, and line, rectangle, circle and ellipse, filled or
+  as outlines. A shape is previewed under the lines while you size it.
+- **HoloDraw's 20 colours**, three brush sizes, undo/redo and clear (undoable).
+- **Zoom and pan up to 5×**, with a loupe that shows where you are on the page.
+  Three fingers by hand; trackpad or touch pinch, the wheel, or the keyboard otherwise.
+- **Fill mode:** with the fill tool, pointing only aims and a pinch fills.
+- **Random photo** from Lorem Picsum, credited to its photographer, as HoloDraw's
+  `R` key does.
+- **Blank page:** HoloDraw's drawing mode, no photo and no job. A fill stops at the
+  paint itself.
+- **Keys** follow HoloDraw: `Z`/`Y` undo and redo, `C` clear, `S` save, `N` new
+  photo, `F` fill tool, `Shift+F` filled shapes, `I`/`O` or `+`/`-` zoom, arrows pan,
+  `0` fit, `Space` fills where the hand points, `[`/`]` detail, `1`–`3` brush size.
+
+A mouse or finger works too: tap to fill, drag to draw, pinch to zoom.
+
+What changed from HoloDraw's code on the way over:
 
 - **Gestures hold at any hand rotation.** HoloDraw compares fingertip and knuckle
   heights, so MediaPipe's own sideways thumbs-up test photo reads as two raised
@@ -200,6 +231,11 @@ What changed from HoloDraw's gesture code on the way over:
   which is still undo, so a held fist undoes every frame (9 times in 10 frames).
   Here an action fires once, when its gesture is entered; undo and redo must be
   held for 220 ms, so a hand passing through a fist does nothing.
+- **Zoom is a grab, not a joystick.** HoloDraw zooms while the three-finger hand sits
+  above where it started and pans while it sits to one side. Here the page stays
+  under the hand: it pans with the hand and zooms as the hand comes closer to the
+  camera, read from the palm's apparent size. The brush keeps its size on screen,
+  so zooming in paints finer.
 - **Steadier aim.** A One Euro filter replaces the fixed EMA, a pinch has
   hysteresis, and a fill lands where the fingertip pointed 120 ms before the pinch
   closed, not where closing the pinch dragged it.
@@ -207,11 +243,14 @@ What changed from HoloDraw's gesture code on the way over:
   so a brush can never cover a line, and fills bleed 2 px under the lines so no
   white halo shows. Undo stores only the rectangle each action changed.
 
-Tested two ways. `node --test "web/tests/*.test.mjs"` runs 13 unit tests on hand
-landmarks from MediaPipe's test photos (pointing, victory, fist, thumbs up) and on the
-fill. End to end, headless Chrome with a fake camera playing those photos drove the
-live page: pointing painted a stroke, a fist undid it, a thumbs-up redid it, at
-24 to 31 fps on the GPU delegate.
+Tested two ways. `node --test "web/tests/*.test.mjs"` runs 24 unit tests: gestures on
+hand landmarks from MediaPipe's test photos (pointing, victory, fist, thumbs up, and
+a three-finger hand built from the victory photo), push-to-zoom, the zoom and pan
+maths, shape geometry and the fill. End to end, headless Chrome with a fake camera
+playing those photos drove the live page through 46 checks: the hand brushes, undoes,
+redoes, sizes a rectangle and places it; the mouse draws every shape, fills, erases,
+clears and zooms; touch pinches; detail switches keep the paint; random and blank
+pages work; desktop and mobile layouts don't overflow.
 
 ### Deploy
 
@@ -240,8 +279,8 @@ cp ../HoloDraw/holopaint_unet.pth artifacts/
 .venv/bin/python model/quantize.py          # -> artifacts/unet_int8_{static,dynamic}.onnx
 .venv/bin/python model/parity_eval.py --gate unet_int8_static.onnx   # -> results/parity.{md,json}
 
-.venv/bin/python -m pytest                  # 37 tests (worker + API)
-node --test "web/tests/*.test.mjs"          # 13 tests (gestures + fill)
+.venv/bin/python -m pytest                  # 42 tests (worker + API)
+node --test "web/tests/*.test.mjs"          # 24 tests (gestures, zoom, shapes, fill)
 .venv/bin/python scripts/local_e2e.py       # build image, run it against moto, check upload -> PNG
 ```
 
@@ -253,7 +292,7 @@ worker/   handler.py  photo.py  pipeline.py  onnx_predictor.py  Dockerfile  test
 api/      app.py  tests/
 infra/    bootstrap/  app/  modules/{private_bucket,queue,jobs_table,worker,api}/
 scripts/  tf.sh  push_worker.sh  smoke_test.py  local_e2e.py
-web/      index.html  styles.css  app.js  gestures.js  hand.js  paint.js  fill.js  tests/
+web/      index.html  styles.css  app.js  gestures.js  hand.js  paint.js  shapes.js  view.js  fill.js  tests/
 results/  parity.md  parity.json                   (side-by-side PNGs are git-ignored)
 artifacts/  weights and ONNX files (git-ignored; S3 model registry from M3)
 ```

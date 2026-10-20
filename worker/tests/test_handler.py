@@ -86,6 +86,23 @@ def test_upload_becomes_colouring_page(aws, shapes_jpeg):
 
 
 @needs_model
+def test_every_detail_level_is_written(aws, shapes_jpeg):
+    job_id = new_job(aws, shapes_jpeg)
+    invoke(sqs_event(f"uploads/{job_id}"))
+
+    job = status(aws, job_id)
+    assert len(job["detail_keys"]) == len(handler.DETAIL_THRESHOLDS)
+    assert job["detail_keys"][-1] == job["result_key"]  # the most detailed level is HoloDraw's default
+    assert 0 <= job["detail"] < len(job["detail_keys"])
+    ink = []
+    for key in job["detail_keys"]:
+        body = aws[0].get_object(Bucket=BUCKET, Key=key)["Body"].read()
+        outline = cv2.imdecode(np.frombuffer(body, np.uint8), cv2.IMREAD_GRAYSCALE)
+        ink.append(np.count_nonzero(outline == 0))
+    assert ink == sorted(ink)  # each level adds lines
+
+
+@needs_model
 def test_duplicate_delivery_is_skipped(aws, shapes_jpeg):
     job_id = new_job(aws, shapes_jpeg)
     invoke(sqs_event(f"uploads/{job_id}"))
@@ -104,12 +121,14 @@ def test_reprocessing_writes_identical_output(aws, shapes_jpeg):
     key = f"results/{job_id}.png"
     invoke(sqs_event(f"uploads/{job_id}"))
     first = aws[0].get_object(Bucket=BUCKET, Key=key)["Body"].read()
+    first_least = aws[0].get_object(Bucket=BUCKET, Key=f"results/{job_id}-1.png")["Body"].read()
 
     # e.g. the Lambda crashed after writing the PNG but before marking DONE
     aws[1].update_item(Key={"job_id": job_id}, UpdateExpression="SET #s = :p",
                        ExpressionAttributeNames={"#s": "status"}, ExpressionAttributeValues={":p": "PENDING"})
     invoke(sqs_event(f"uploads/{job_id}"))
     assert aws[0].get_object(Bucket=BUCKET, Key=key)["Body"].read() == first
+    assert aws[0].get_object(Bucket=BUCKET, Key=f"results/{job_id}-1.png")["Body"].read() == first_least
 
 
 def test_invalid_upload_fails_job_without_retry(aws):

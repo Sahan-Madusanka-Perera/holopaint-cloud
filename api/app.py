@@ -2,7 +2,8 @@
 API Lambda behind an HTTP API (payload format 2.0).
 
   POST /jobs           -> create a PENDING job + presigned POST for the photo upload
-  GET  /jobs/{job_id}  -> job status; once DONE, a short-lived link to the result
+  GET  /jobs/{job_id}  -> job status; once DONE, short-lived links to the result
+                          at each detail level, least detailed first
 
 The browser uploads straight to S3, so photos never pass through this function.
 The presigned POST policy (unlike a presigned PUT) lets S3 itself enforce the
@@ -92,12 +93,16 @@ def get_job(job_id: str) -> dict:
 
     body = {"job_id": job_id, **{k: job[k] for k in PUBLIC_FIELDS if k in job}}
     if job["status"] == "DONE":
-        body["result_url"] = _s3().generate_presigned_url(
-            "get_object",
-            Params={"Bucket": os.environ["BUCKET_NAME"], "Key": job["result_key"]},
-            ExpiresIn=RESULT_URL_SECONDS,
-        )
+        body["result_url"] = _result_url(job["result_key"])
+        if "detail_keys" in job:  # jobs traced before detail levels have one outline
+            body["detail_urls"] = [_result_url(key) for key in job["detail_keys"]]
+            body["detail"] = job["detail"]
     return _response(200, body)
+
+
+def _result_url(key: str) -> str:
+    return _s3().generate_presigned_url(
+        "get_object", Params={"Bucket": os.environ["BUCKET_NAME"], "Key": key}, ExpiresIn=RESULT_URL_SECONDS)
 
 
 def lambda_handler(event, context):

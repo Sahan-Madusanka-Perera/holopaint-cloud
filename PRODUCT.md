@@ -29,7 +29,10 @@ The outlines come from a U-Net Sahan trained from scratch for HoloDraw, compress
 - Uploads and results are deleted after 24 hours.
 - API is throttled to 5 requests per second; at most 2 photos process at once.
 - Hosted in AWS ap-southeast-2 (Sydney).
-- Paint by hand: MediaPipe's hand landmarker (Tasks Vision 1.0.1 from jsDelivr, model from Google's model storage) runs in the browser, GPU when available. Video never leaves the device. Gestures follow HoloDraw: point to brush, pinch to fill or pick an ink, two fingers to move, fist to undo, thumb up to redo. A mouse or finger also works: tap to fill, drag to brush.
+- Detail: the worker traces each photo at five thresholds (0.55 to HoloDraw's 0.30) from one model pass; the page switches between them without losing paint and starts on the most detailed level that is at most 20% ink.
+- Paint by hand: MediaPipe's hand landmarker (Tasks Vision 1.0.1 from jsDelivr, model from Google's model storage) runs in the browser, GPU when available. Video never leaves the device. Gestures follow HoloDraw: point to draw, pinch to fill or pick from the tray, two fingers to move or place a shape, three fingers to pan and zoom (push toward the camera), fist to undo, thumb up to redo. A mouse or finger also works: tap to fill, drag to draw, pinch to zoom.
+- HoloDraw's full tool set: brush, eraser, fill, line, rectangle, circle, ellipse (filled or outline), its 20 colours, three brush sizes, undo, redo, clear, zoom to 5x with a loupe, and its keyboard keys.
+- Also from HoloDraw: a random photo from Lorem Picsum (credited to the Unsplash photographer) and a blank page to draw on without a photo.
 - The camera needs permission and a secure context (localhost or HTTPS). Painting needs the outline read back over CORS, so it is offered only on the API's allowed origins.
 
 ## Brand Commitments

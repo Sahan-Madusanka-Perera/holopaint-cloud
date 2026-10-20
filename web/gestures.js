@@ -9,12 +9,15 @@ export const Gesture = Object.freeze({
   DRAW: "draw",          // index finger only
   NAVIGATE: "navigate",  // index and middle fingers
   SELECT: "select",      // pinch
+  ZOOM: "zoom",          // index, middle and ring fingers
   UNDO: "undo",          // fist
   REDO: "redo",          // thumb only
 });
 
 const WRIST = 0, THUMB_IP = 3, THUMB_TIP = 4, INDEX_MCP = 5, INDEX_PIP = 6, INDEX_TIP = 8;
 const MIDDLE_MCP = 9, PINKY_MCP = 17;
+const PUSH_DEAD = 0.06;  // log change in palm size ignored before zooming, so a steady hand holds still
+const PUSH_GAIN = 2.5;   // zoom per log change in palm size beyond that
 const FINGERS = [[8, 6], [12, 10], [16, 14], [20, 18]];  // [tip, PIP] for index to pinky
 
 // Thresholds, measured on MediaPipe's own test photos (web/tests/fixtures/hands.json).
@@ -56,12 +59,27 @@ export function classify(p, wasPinching = false) {
   // The thumb is ignored while pointing; it sits anywhere when people point.
   if (index && !middle && !ring && !pinky) return Gesture.DRAW;
   if (index && middle && !ring && !pinky) return Gesture.NAVIGATE;
+  if (index && middle && ring && !pinky) return Gesture.ZOOM;
   return Gesture.IDLE;
+}
+
+// The palm's apparent size: the mean side of the wrist and the index and pinky
+// knuckles. It grows as the hand nears the camera, whatever the fingers do.
+export function palmSize(p) {
+  return (dist(p[WRIST], p[INDEX_MCP]) + dist(p[WRIST], p[PINKY_MCP]) + dist(p[INDEX_MCP], p[PINKY_MCP])) / 3;
+}
+
+// HoloDraw zooms by moving the three-finger hand up or down. Here the hand holds the
+// page: moving it pans, and pushing it toward the camera zooms in. `ratio` is the
+// palm's size now over its size when the gesture began; returns the zoom factor.
+export function pushZoom(ratio) {
+  const change = Math.log(ratio);
+  return Math.exp(PUSH_GAIN * Math.sign(change) * Math.max(0, Math.abs(change) - PUSH_DEAD));
 }
 
 // A gesture must hold steady before it counts, and undo and redo hold longer:
 // a hand passing through a fist on its way somewhere shouldn't undo.
-const HOLD_MS = { [Gesture.UNDO]: 220, [Gesture.REDO]: 220 };
+const HOLD_MS = { [Gesture.UNDO]: 220, [Gesture.REDO]: 220, [Gesture.ZOOM]: 90 };
 const DEFAULT_HOLD_MS = 30;
 
 export class GestureFilter {

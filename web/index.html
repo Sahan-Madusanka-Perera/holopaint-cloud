@@ -16,7 +16,7 @@
 <!--
 THESIS: The page is a printer's proof sheet. The photo is the colour proof, the colouring page is the black plate, and the job's progress is the colour bar. It refuses the gradient dropzone hero.
 OWN-WORLD: White proof stock on a neutral grey viewing-booth surround. Registration-black ink; process cyan, magenta and yellow only in the colour bar and marks. Crop marks, registration targets, a slug line. Archivo wide for the headline, condensed for the slug. Square corners, hairline rules.
-STORY: A reviewer drops a photo, watches four inks fill as it uploads, queues, traces and lands, sees the outline snap into register, then paints it by hand in front of the camera and downloads it.
+STORY: A reviewer drops a photo, watches four inks fill as it uploads, queues, traces and lands, sees the outline snap into register, sets how much detail it carries, then paints it by hand in front of the camera with HoloDraw's tools and downloads it.
 FIRST VIEWPORT: The sheet anchored under the masthead. Colour bar centred in the top margin, headline at the top left of the trim, photo plate left with Choose photo at its centre, empty outline plate right, slug line along the bottom margin.
 FORM: Print-shop proof sheet, 4 of 7. Seed 2e1cf53e.
 FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, and DESIGN.md
@@ -27,11 +27,40 @@ FINISH: unreviewed and undocumented is unfinished; this build ends with the fini
       <path d="M12 1v22M1 12h22" stroke="currentColor" stroke-width="1"/>
       <circle cx="12" cy="12" r="2.6" fill="currentColor"/>
     </symbol>
-    <symbol id="undo" viewBox="0 0 20 20">
+    <symbol id="i-undo" viewBox="0 0 20 20">
       <path d="M7.5 4.5 3.5 8.5l4 4M3.5 8.5h8.25a4.75 4.75 0 0 1 0 9.5H9" fill="none" stroke="currentColor" stroke-width="1.6"/>
     </symbol>
-    <symbol id="redo" viewBox="0 0 20 20">
+    <symbol id="i-redo" viewBox="0 0 20 20">
       <path d="m12.5 4.5 4 4-4 4M16.5 8.5H8.25a4.75 4.75 0 0 0 0 9.5H11" fill="none" stroke="currentColor" stroke-width="1.6"/>
+    </symbol>
+    <symbol id="i-clear" viewBox="0 0 20 20">
+      <path d="M3.5 5.5h13M8 5.5v-2h4v2M5.3 5.5l.9 11h7.6l.9-11M8.5 8.5v5M11.5 8.5v5" fill="none" stroke="currentColor" stroke-width="1.6"/>
+    </symbol>
+    <symbol id="t-brush" viewBox="0 0 20 20">
+      <path d="m4 16 .9-3.6L13 4.3 15.7 7l-8.1 8.1ZM11.4 5.9l2.7 2.7" fill="none" stroke="currentColor" stroke-width="1.6"/>
+    </symbol>
+    <symbol id="t-eraser" viewBox="0 0 20 20">
+      <path d="M7.6 15.5 3.3 11.2l7.4-7.4 5.6 5.6-6.1 6.1ZM6.4 8.1l5.6 5.6M7.6 15.5H17" fill="none" stroke="currentColor" stroke-width="1.6"/>
+    </symbol>
+    <symbol id="t-fill" viewBox="0 0 20 20">
+      <path d="M9 3.6 15.4 10 9.5 15.9 3.1 9.5Z" fill="none" stroke="currentColor" stroke-width="1.6"/>
+      <path d="M4 9.6h10.9l-5.4 5.4ZM16.8 12.4c.9 1.4 1.4 2.3 1.4 2.9a1.4 1.4 0 0 1-2.8 0c0-.6.5-1.5 1.4-2.9Z" fill="currentColor"/>
+    </symbol>
+    <symbol id="t-line" viewBox="0 0 20 20">
+      <path d="M4.5 15.5 15.5 4.5" fill="none" stroke="currentColor" stroke-width="1.6"/>
+    </symbol>
+    <symbol id="t-rect" viewBox="0 0 20 20">
+      <path d="M3.5 5.5h13v9h-13Z" fill="none" stroke="currentColor" stroke-width="1.6"/>
+    </symbol>
+    <symbol id="t-circle" viewBox="0 0 20 20">
+      <circle cx="10" cy="10" r="6.2" fill="none" stroke="currentColor" stroke-width="1.6"/>
+    </symbol>
+    <symbol id="t-ellipse" viewBox="0 0 20 20">
+      <ellipse cx="10" cy="10" rx="7" ry="4.3" fill="none" stroke="currentColor" stroke-width="1.6"/>
+    </symbol>
+    <symbol id="loupe" viewBox="0 0 24 24">
+      <circle cx="10" cy="10" r="6.5" fill="none" stroke="currentColor" stroke-width="1.5"/>
+      <path d="m14.8 14.8 6.7 6.7" stroke="currentColor" stroke-width="2.4"/>
     </symbol>
   </svg>
 
@@ -63,12 +92,19 @@ FINISH: unreviewed and undocumented is unfinished; this build ends with the fini
 
       <div class="plates">
         <section class="plate plate-photo" id="photo-plate" aria-labelledby="photo-label">
-          <h2 class="plate-label" id="photo-label">Photo</h2>
+          <div class="plate-head">
+            <h2 class="plate-label" id="photo-label">Photo</h2>
+            <a class="credit" id="credit" target="_blank" rel="noopener" hidden></a>
+          </div>
           <div class="plate-field" id="dropzone">
             <div class="intake" id="intake">
               <svg class="intake-mark" aria-hidden="true"><use href="#reg"/></svg>
               <button class="btn btn-ink" type="button" id="choose">Choose photo</button>
               <p class="intake-hint">or drop one here</p>
+              <p class="intake-alt">
+                <button class="text-btn" type="button" id="random">Random photo</button>
+                <button class="text-btn" type="button" id="blank">Blank page</button>
+              </p>
             </div>
             <div class="plate-media" id="photo-media"></div>
           </div>
@@ -95,26 +131,45 @@ FINISH: unreviewed and undocumented is unfinished; this build ends with the fini
             </div>
             <div class="camera-foot">
               <dl class="key" id="key">
-                <div class="key-row" data-gesture="draw"><dt>Point</dt><dd>Brush</dd></div>
-                <div class="key-row" data-gesture="select"><dt>Pinch</dt><dd>Fill, or pick an ink</dd></div>
-                <div class="key-row" data-gesture="navigate"><dt>Two fingers</dt><dd>Move</dd></div>
+                <div class="key-row" data-gesture="draw"><dt>Point</dt><dd id="key-draw">Brush</dd></div>
+                <div class="key-row" data-gesture="select"><dt>Pinch</dt><dd id="key-select">Fill, or pick from the tray</dd></div>
+                <div class="key-row" data-gesture="navigate"><dt>Two fingers</dt><dd id="key-navigate">Move</dd></div>
+                <div class="key-row" data-gesture="zoom"><dt>Three fingers</dt><dd>Pan, and push in to zoom</dd></div>
                 <div class="key-row" data-gesture="undo"><dt>Fist</dt><dd>Undo</dd></div>
                 <div class="key-row" data-gesture="redo"><dt>Thumb up</dt><dd>Redo</dd></div>
               </dl>
-              <p class="key-note">With a mouse or finger, tap to fill and drag to brush.</p>
+              <p class="key-note">Mouse or touch: tap to fill, drag to draw, pinch to zoom.</p>
               <p class="key-note">Video stays on this device.</p>
             </div>
           </div>
         </section>
 
         <section class="plate plate-outline" id="outline-plate" aria-labelledby="outline-label">
-          <h2 class="plate-label" id="outline-label">Colouring page</h2>
+          <div class="plate-head">
+            <h2 class="plate-label" id="outline-label">Colouring page</h2>
+            <div class="detail" id="detail" role="radiogroup" aria-label="Detail" hidden>
+              <span class="detail-label" aria-hidden="true">Detail</span>
+            </div>
+          </div>
           <div class="tray" id="tray" role="toolbar" aria-label="Paint" hidden>
-            <div class="tray-group" id="inks" role="group" aria-label="Ink"></div>
-            <div class="tray-group" id="sizes" role="group" aria-label="Brush size"></div>
-            <div class="tray-group" role="group" aria-label="History">
-              <button class="chip chip-tool" type="button" id="undo" aria-label="Undo" disabled><svg aria-hidden="true"><use href="#undo"/></svg></button>
-              <button class="chip chip-tool" type="button" id="redo" aria-label="Redo" disabled><svg aria-hidden="true"><use href="#redo"/></svg></button>
+            <div class="tray-group tray-tools" id="tools" role="group" aria-label="Tool">
+              <button class="chip chip-tool" type="button" data-tool="brush" aria-label="Brush" title="Brush" aria-pressed="false"><svg aria-hidden="true"><use href="#t-brush"/></svg></button>
+              <button class="chip chip-tool" type="button" data-tool="eraser" aria-label="Eraser" title="Eraser" aria-pressed="false"><svg aria-hidden="true"><use href="#t-eraser"/></svg></button>
+              <button class="chip chip-tool" type="button" data-tool="fill" aria-label="Fill" title="Fill (F)" aria-keyshortcuts="F" aria-pressed="false"><svg aria-hidden="true"><use href="#t-fill"/></svg></button>
+              <button class="chip chip-filled" type="button" id="filled" aria-label="Filled shapes" title="Filled shapes (Shift+F)" aria-keyshortcuts="Shift+F" aria-pressed="false"></button>
+              <button class="chip chip-tool" type="button" data-tool="line" aria-label="Line" title="Line" aria-pressed="false"><svg aria-hidden="true"><use href="#t-line"/></svg></button>
+              <button class="chip chip-tool" type="button" data-tool="rect" aria-label="Rectangle" title="Rectangle" aria-pressed="false"><svg aria-hidden="true"><use href="#t-rect"/></svg></button>
+              <button class="chip chip-tool" type="button" data-tool="circle" aria-label="Circle" title="Circle" aria-pressed="false"><svg aria-hidden="true"><use href="#t-circle"/></svg></button>
+              <button class="chip chip-tool" type="button" data-tool="ellipse" aria-label="Ellipse" title="Ellipse" aria-pressed="false"><svg aria-hidden="true"><use href="#t-ellipse"/></svg></button>
+            </div>
+            <div class="tray-group tray-inks" id="inks" role="group" aria-label="Ink"></div>
+            <div class="tray-stack">
+              <div class="tray-group" id="sizes" role="group" aria-label="Brush size"></div>
+              <div class="tray-group" role="group" aria-label="History">
+                <button class="chip chip-tool" type="button" id="undo" aria-label="Undo" title="Undo (Z)" aria-keyshortcuts="Z" disabled><svg aria-hidden="true"><use href="#i-undo"/></svg></button>
+                <button class="chip chip-tool" type="button" id="redo" aria-label="Redo" title="Redo (Y)" aria-keyshortcuts="Y" disabled><svg aria-hidden="true"><use href="#i-redo"/></svg></button>
+                <button class="chip chip-tool" type="button" id="clear" aria-label="Clear the paint" title="Clear (C)" aria-keyshortcuts="C" disabled><svg aria-hidden="true"><use href="#i-clear"/></svg></button>
+              </div>
             </div>
           </div>
           <div class="plate-field">
@@ -156,6 +211,7 @@ FINISH: unreviewed and undocumented is unfinished; this build ends with the fini
   <div class="hand-cursor" id="hand-cursor" aria-hidden="true" hidden>
     <span class="hand-cursor-tip"></span>
     <svg class="hand-cursor-mark"><use href="#reg"/></svg>
+    <svg class="hand-cursor-loupe"><use href="#loupe"/></svg>
   </div>
 
   <p class="sr-only" id="status" aria-live="polite"></p>
