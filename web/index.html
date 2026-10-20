@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>HoloPaint</title>
+  <meta name="description" content="Turn a photo into a colouring page. A U-Net on AWS Lambda traces it into closed, fillable outlines.">
+  <meta name="theme-color" content="#c9cacc">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="preload" href="fonts/archivo-latin.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="styles.css">
+  <script src="config.js"></script>
+  <script src="app.js" defer></script>
+</head>
+<body>
+<!--
+THESIS: The page is a printer's proof sheet. The photo is the colour proof, the colouring page is the black plate, and the job's progress is the colour bar. It refuses the gradient dropzone hero.
+OWN-WORLD: White proof stock on a neutral grey viewing-booth surround. Registration-black ink; process cyan, magenta and yellow only in the colour bar and marks. Crop marks, registration targets, a slug line. Archivo wide for the headline, condensed for the slug. Square corners, hairline rules.
+STORY: A reviewer drops a photo, watches four inks fill as it uploads, queues, traces and lands, sees the outline snap into register, downloads it.
+FIRST VIEWPORT: The sheet anchored under the masthead. Colour bar centred in the top margin, headline at the top left of the trim, photo plate left with Choose photo at its centre, empty outline plate right, slug line along the bottom margin.
+FORM: Print-shop proof sheet, 4 of 7. Seed 2e1cf53e.
+FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, and DESIGN.md
+-->
+  <svg class="sprite" aria-hidden="true">
+    <symbol id="reg" viewBox="0 0 24 24">
+      <circle cx="12" cy="12" r="6.5" fill="none" stroke="currentColor" stroke-width="1"/>
+      <path d="M12 1v22M1 12h22" stroke="currentColor" stroke-width="1"/>
+      <circle cx="12" cy="12" r="2.6" fill="currentColor"/>
+    </symbol>
+  </svg>
+
+  <header class="masthead">
+    <a class="wordmark" href="./" aria-label="HoloPaint home">
+      <svg class="wordmark-mark" aria-hidden="true"><use href="#reg"/></svg>
+      HoloPaint
+    </a>
+    <a class="masthead-link" href="https://github.com/Sahan-Madusanka-Perera/holopaint-cloud">GitHub</a>
+  </header>
+
+  <main class="sheet" id="sheet" data-stage="idle">
+    <div class="marks" aria-hidden="true">
+      <span class="crop crop-tl"></span><span class="crop crop-tr"></span>
+      <span class="crop crop-bl"></span><span class="crop crop-br"></span>
+      <svg class="target target-left"><use href="#reg"/></svg>
+      <svg class="target target-right"><use href="#reg"/></svg>
+    </div>
+
+    <ol class="colourbar" aria-hidden="true">
+      <li class="patch" data-ink="c" data-step="upload"><span class="swatch"></span><span class="patch-name">Upload</span></li>
+      <li class="patch" data-ink="m" data-step="queue"><span class="swatch"></span><span class="patch-name">Queue</span></li>
+      <li class="patch" data-ink="y" data-step="trace"><span class="swatch"></span><span class="patch-name">Trace</span></li>
+      <li class="patch" data-ink="k" data-step="ready"><span class="swatch"></span><span class="patch-name">Ready</span></li>
+    </ol>
+
+    <div class="trim">
+      <h1 class="headline">Turn a photo into a colouring page.</h1>
+
+      <div class="plates">
+        <section class="plate plate-photo" id="photo-plate" aria-labelledby="photo-label">
+          <h2 class="plate-label" id="photo-label">Photo</h2>
+          <div class="plate-field" id="dropzone">
+            <div class="intake" id="intake">
+              <svg class="intake-mark" aria-hidden="true"><use href="#reg"/></svg>
+              <button class="btn btn-ink" type="button" id="choose">Choose photo</button>
+              <p class="intake-hint">or drop one here</p>
+            </div>
+            <div class="plate-media" id="photo-media"></div>
+          </div>
+        </section>
+
+        <section class="plate plate-outline" id="outline-plate" aria-labelledby="outline-label">
+          <h2 class="plate-label" id="outline-label">Colouring page</h2>
+          <div class="plate-field">
+            <svg class="plate-target" aria-hidden="true"><use href="#reg"/></svg>
+            <div class="progress" id="progress" hidden>
+              <p class="progress-step" id="progress-step">Uploading</p>
+              <p class="progress-clock"><span id="clock">0.0</span><span class="progress-unit">s</span></p>
+              <p class="progress-note" id="progress-note" hidden>Waking the worker. The first photo takes about 10 seconds longer.</p>
+            </div>
+            <div class="slip" id="slip" role="alert" hidden>
+              <svg class="slip-mark" viewBox="0 0 28 28" aria-hidden="true">
+                <path d="M4 24 L14 4 L24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="miter"/>
+              </svg>
+              <p class="slip-text" id="slip-text"></p>
+              <button class="btn btn-line" type="button" data-action="reset">Try another photo</button>
+            </div>
+            <div class="plate-media" id="outline-media"></div>
+          </div>
+        </section>
+      </div>
+
+      <div class="actions" id="actions" hidden>
+        <button class="btn btn-line" type="button" data-action="reset">New photo</button>
+        <button class="btn btn-ink" type="button" id="download">Download PNG</button>
+      </div>
+    </div>
+
+    <p class="slug">
+      <span class="slug-fixed">HoloPaint Cloud</span><span class="slug-fixed slug-extra">U-Net INT8</span><span class="slug-fixed">AWS Lambda, Sydney</span>
+      <span class="slug-job" id="slug-job"></span>
+    </p>
+  </main>
+
+  <p class="colophon">Photos and results are deleted after 24 hours.</p>
+
+  <p class="sr-only" id="status" aria-live="polite"></p>
+  <input type="file" id="file" accept="image/jpeg,image/png,image/webp,image/heic,image/heif" hidden>
+</body>
+</html>

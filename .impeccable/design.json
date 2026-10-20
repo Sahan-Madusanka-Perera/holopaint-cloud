@@ -1,0 +1,427 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-20T11:08:12.699093+00:00",
+  "title": "Design System: HoloPaint",
+  "extensions": {
+    "colorMeta": {
+      "surround": {
+        "role": "neutral",
+        "displayName": "Viewing Booth Grey",
+        "canonical": "#c9cacc",
+        "tonalRamp": [
+          "oklch(15% 0.003 264.5)",
+          "oklch(25% 0.003 264.5)",
+          "oklch(35% 0.003 264.5)",
+          "oklch(48% 0.003 264.5)",
+          "oklch(60% 0.003 264.5)",
+          "oklch(72% 0.003 264.5)",
+          "oklch(85% 0.003 264.5)",
+          "oklch(95% 0.003 264.5)"
+        ]
+      },
+      "surround-ink": {
+        "role": "neutral",
+        "displayName": "Booth Ink",
+        "canonical": "#161617",
+        "tonalRamp": [
+          "oklch(15% 0.002 286.2)",
+          "oklch(25% 0.002 286.2)",
+          "oklch(35% 0.002 286.2)",
+          "oklch(48% 0.002 286.2)",
+          "oklch(60% 0.002 286.2)",
+          "oklch(72% 0.002 286.2)",
+          "oklch(85% 0.002 286.2)",
+          "oklch(95% 0.002 286.2)"
+        ]
+      },
+      "surround-ink-2": {
+        "role": "neutral",
+        "displayName": "Booth Ink Soft",
+        "canonical": "#393a3d",
+        "tonalRamp": [
+          "oklch(15% 0.005 271.3)",
+          "oklch(25% 0.005 271.3)",
+          "oklch(35% 0.005 271.3)",
+          "oklch(48% 0.005 271.3)",
+          "oklch(60% 0.005 271.3)",
+          "oklch(72% 0.005 271.3)",
+          "oklch(85% 0.005 271.3)",
+          "oklch(95% 0.005 271.3)"
+        ]
+      },
+      "stock": {
+        "role": "neutral",
+        "displayName": "Proof Stock",
+        "canonical": "#ffffff",
+        "tonalRamp": [
+          "oklch(15% 0.000 89.9)",
+          "oklch(25% 0.000 89.9)",
+          "oklch(35% 0.000 89.9)",
+          "oklch(48% 0.000 89.9)",
+          "oklch(60% 0.000 89.9)",
+          "oklch(72% 0.000 89.9)",
+          "oklch(85% 0.000 89.9)",
+          "oklch(95% 0.000 89.9)"
+        ]
+      },
+      "ink": {
+        "role": "primary",
+        "displayName": "Registration Black",
+        "canonical": "#141414",
+        "tonalRamp": [
+          "oklch(15% 0.000 89.9)",
+          "oklch(25% 0.000 89.9)",
+          "oklch(35% 0.000 89.9)",
+          "oklch(48% 0.000 89.9)",
+          "oklch(60% 0.000 89.9)",
+          "oklch(72% 0.000 89.9)",
+          "oklch(85% 0.000 89.9)",
+          "oklch(95% 0.000 89.9)"
+        ]
+      },
+      "ink-2": {
+        "role": "neutral",
+        "displayName": "Press Grey",
+        "canonical": "#5b5b5d",
+        "tonalRamp": [
+          "oklch(15% 0.003 286.3)",
+          "oklch(25% 0.003 286.3)",
+          "oklch(35% 0.003 286.3)",
+          "oklch(48% 0.003 286.3)",
+          "oklch(60% 0.003 286.3)",
+          "oklch(72% 0.003 286.3)",
+          "oklch(85% 0.003 286.3)",
+          "oklch(95% 0.003 286.3)"
+        ]
+      },
+      "plate-photo": {
+        "role": "neutral",
+        "displayName": "Photo Plate Grey",
+        "canonical": "#ececed",
+        "tonalRamp": [
+          "oklch(15% 0.001 286.4)",
+          "oklch(25% 0.001 286.4)",
+          "oklch(35% 0.001 286.4)",
+          "oklch(48% 0.001 286.4)",
+          "oklch(60% 0.001 286.4)",
+          "oklch(72% 0.001 286.4)",
+          "oklch(85% 0.001 286.4)",
+          "oklch(95% 0.001 286.4)"
+        ]
+      },
+      "plate-outline": {
+        "role": "neutral",
+        "displayName": "Outline Plate White",
+        "canonical": "#f8f8f8",
+        "tonalRamp": [
+          "oklch(15% 0.000 89.9)",
+          "oklch(25% 0.000 89.9)",
+          "oklch(35% 0.000 89.9)",
+          "oklch(48% 0.000 89.9)",
+          "oklch(60% 0.000 89.9)",
+          "oklch(72% 0.000 89.9)",
+          "oklch(85% 0.000 89.9)",
+          "oklch(95% 0.000 89.9)"
+        ]
+      },
+      "hair": {
+        "role": "neutral",
+        "displayName": "Hairline",
+        "canonical": "#e1e1e2",
+        "tonalRamp": [
+          "oklch(15% 0.001 286.4)",
+          "oklch(25% 0.001 286.4)",
+          "oklch(35% 0.001 286.4)",
+          "oklch(48% 0.001 286.4)",
+          "oklch(60% 0.001 286.4)",
+          "oklch(72% 0.001 286.4)",
+          "oklch(85% 0.001 286.4)",
+          "oklch(95% 0.001 286.4)"
+        ]
+      },
+      "cyan": {
+        "role": "secondary",
+        "displayName": "Process Cyan",
+        "canonical": "#009fe3",
+        "tonalRamp": [
+          "oklch(15% 0.147 237.8)",
+          "oklch(25% 0.147 237.8)",
+          "oklch(35% 0.147 237.8)",
+          "oklch(48% 0.147 237.8)",
+          "oklch(60% 0.147 237.8)",
+          "oklch(72% 0.147 237.8)",
+          "oklch(85% 0.147 237.8)",
+          "oklch(95% 0.147 237.8)"
+        ]
+      },
+      "magenta": {
+        "role": "secondary",
+        "displayName": "Process Magenta",
+        "canonical": "#e6007e",
+        "tonalRamp": [
+          "oklch(15% 0.244 358.6)",
+          "oklch(25% 0.244 358.6)",
+          "oklch(35% 0.244 358.6)",
+          "oklch(48% 0.244 358.6)",
+          "oklch(60% 0.244 358.6)",
+          "oklch(72% 0.244 358.6)",
+          "oklch(85% 0.244 358.6)",
+          "oklch(95% 0.244 358.6)"
+        ]
+      },
+      "yellow": {
+        "role": "secondary",
+        "displayName": "Process Yellow",
+        "canonical": "#ffe600",
+        "tonalRamp": [
+          "oklch(15% 0.192 101.4)",
+          "oklch(25% 0.192 101.4)",
+          "oklch(35% 0.192 101.4)",
+          "oklch(48% 0.192 101.4)",
+          "oklch(60% 0.192 101.4)",
+          "oklch(72% 0.192 101.4)",
+          "oklch(85% 0.192 101.4)",
+          "oklch(95% 0.192 101.4)"
+        ]
+      },
+      "cyan-ink": {
+        "role": "tertiary",
+        "displayName": "Press Cyan",
+        "canonical": "#0076ad",
+        "tonalRamp": [
+          "oklch(15% 0.122 239.3)",
+          "oklch(25% 0.122 239.3)",
+          "oklch(35% 0.122 239.3)",
+          "oklch(48% 0.122 239.3)",
+          "oklch(60% 0.122 239.3)",
+          "oklch(72% 0.122 239.3)",
+          "oklch(85% 0.122 239.3)",
+          "oklch(95% 0.122 239.3)"
+        ]
+      },
+      "magenta-ink": {
+        "role": "tertiary",
+        "displayName": "Correction Magenta",
+        "canonical": "#c2006a",
+        "tonalRamp": [
+          "oklch(15% 0.215 358.4)",
+          "oklch(25% 0.215 358.4)",
+          "oklch(35% 0.215 358.4)",
+          "oklch(48% 0.215 358.4)",
+          "oklch(60% 0.215 358.4)",
+          "oklch(72% 0.215 358.4)",
+          "oklch(85% 0.215 358.4)",
+          "oklch(95% 0.215 358.4)"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Headline",
+        "purpose": "The one wide headline at the top left of the trim."
+      },
+      "numeral": {
+        "displayName": "Clock",
+        "purpose": "Elapsed-seconds readout during a job."
+      },
+      "title": {
+        "displayName": "Step",
+        "purpose": "Current step name above the clock."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Correction-slip message."
+      },
+      "body-small": {
+        "displayName": "Note",
+        "purpose": "Cold-start note and colophon."
+      },
+      "label": {
+        "displayName": "Plate label",
+        "purpose": "Sentence-case condensed plate labels."
+      },
+      "slug": {
+        "displayName": "Slug",
+        "purpose": "Slug line and colour-bar patch names."
+      },
+      "button": {
+        "displayName": "Button",
+        "purpose": "Button labels."
+      }
+    },
+    "shadows": [
+      {
+        "name": "sheet-on-booth",
+        "value": "0 1px 1px rgba(20,20,20,0.06), 0 6px 14px -6px rgba(20,20,20,0.18), 0 28px 56px -28px rgba(20,20,20,0.42)",
+        "purpose": "The proof sheet only."
+      },
+      {
+        "name": "inset-hairline",
+        "value": "inset 0 0 0 1px #e1e1e2",
+        "purpose": "Outline plate frame; edges drawn without changing box size."
+      },
+      {
+        "name": "misregistration-ghost",
+        "value": "drop-shadow(-4px 3px 0 rgba(0,159,227,0.55)) drop-shadow(3px -2px 0 rgba(230,0,126,0.4))",
+        "purpose": "First frame of the registration snap only (filter)."
+      }
+    ],
+    "motion": [
+      {
+        "name": "step",
+        "value": "90ms",
+        "purpose": "One frame of a two-frame state change."
+      },
+      {
+        "name": "patch-blink",
+        "value": "1s steps(1, end) infinite",
+        "purpose": "Current colour-bar patch alternates tint and solid."
+      },
+      {
+        "name": "registration-snap",
+        "value": "180ms steps(2, end)",
+        "purpose": "Result lands offset by 5px,-4px with ink ghosts, then snaps to register."
+      },
+      {
+        "name": "reduced-motion",
+        "value": "none",
+        "purpose": "Both animations removed; end states shown."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "narrow",
+        "value": "760px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Ink Button",
+      "kind": "button",
+      "refersTo": "button-ink",
+      "description": "Primary action: Choose photo, Download PNG.",
+      "html": "<button class=\"ds-btn-ink\" type=\"button\">Download PNG</button>",
+      "css": ".ds-btn-ink { display:inline-flex; align-items:center; justify-content:center; height:44px; padding:0 20px; border:0; border-radius:0; background:var(--ink,#141414); color:var(--stock,#fff); font-family: var(--font, Archivo, system-ui, sans-serif); font-size:15px; font-weight:620; font-stretch:104%; letter-spacing:-0.005em; cursor:pointer; } .ds-btn-ink:hover { background:#2e2e30; } .ds-btn-ink:active { transform:translateY(1px); } .ds-btn-ink:focus-visible { outline:2px solid var(--cyan-ink,#0076ad); outline-offset:3px; }"
+    },
+    {
+      "name": "Line Button",
+      "kind": "button",
+      "refersTo": "button-line",
+      "description": "Secondary action: New photo, Try another photo.",
+      "html": "<button class=\"ds-btn-line\" type=\"button\">New photo</button>",
+      "css": ".ds-btn-line { display:inline-flex; align-items:center; justify-content:center; height:44px; padding:0 20px; border:0; border-radius:0; background:transparent; color:var(--ink,#141414); box-shadow:inset 0 0 0 1.5px var(--ink,#141414); font-family: var(--font, Archivo, system-ui, sans-serif); font-size:15px; font-weight:620; font-stretch:104%; letter-spacing:-0.005em; cursor:pointer; } .ds-btn-line:hover { background:#f0f0f1; } .ds-btn-line:active { transform:translateY(1px); } .ds-btn-line:focus-visible { outline:2px solid var(--cyan-ink,#0076ad); outline-offset:3px; }"
+    },
+    {
+      "name": "Masthead",
+      "kind": "nav",
+      "refersTo": null,
+      "description": "Wordmark with registration-target mark and one text link, on the surround.",
+      "html": "<header class=\"ds-mast\"><a class=\"ds-mast-word\" href=\"#\"><svg viewBox=\"0 0 24 24\" width=\"19\" height=\"19\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"6.5\" fill=\"none\" stroke=\"currentColor\"/><path d=\"M12 1v22M1 12h22\" stroke=\"currentColor\"/><circle cx=\"12\" cy=\"12\" r=\"2.6\" fill=\"currentColor\"/></svg>HoloPaint</a><a class=\"ds-mast-link\" href=\"#\">GitHub</a></header>",
+      "css": ".ds-mast { display:flex; align-items:center; justify-content:space-between; padding:16px 24px; background:var(--surround,#c9cacc); font-family: var(--font, Archivo, system-ui, sans-serif); } .ds-mast-word { display:inline-flex; align-items:center; gap:9px; color:var(--surround-ink,#161617); text-decoration:none; font-size:17px; font-weight:760; font-stretch:115%; letter-spacing:-0.01em; } .ds-mast-link { color:var(--surround-ink,#161617); font-size:14px; font-weight:560; text-decoration:underline; text-decoration-thickness:1px; text-underline-offset:4px; } .ds-mast-link:hover { text-decoration-thickness:2px; } .ds-mast a:focus-visible { outline:2px solid var(--cyan-ink,#0076ad); outline-offset:3px; }"
+    },
+    {
+      "name": "Colour Bar",
+      "kind": "custom",
+      "refersTo": "colour-bar-patch",
+      "description": "Job progress as four abutted process-ink patches: done, current (blinking), void, unreached.",
+      "html": "<ol class=\"ds-bar\"><li class=\"ds-patch is-done\" style=\"--fill:#009fe3;--edge:#009fe3\"><span class=\"ds-sw\"></span>Upload</li><li class=\"ds-patch is-current\" style=\"--fill:#e6007e;--edge:#e6007e\"><span class=\"ds-sw\"></span>Queue</li><li class=\"ds-patch\" style=\"--fill:#ffe600;--edge:#d4bf00\"><span class=\"ds-sw\"></span>Trace</li><li class=\"ds-patch\" style=\"--fill:#141414;--edge:#141414\"><span class=\"ds-sw\"></span>Ready</li></ol>",
+      "css": ".ds-bar { display:flex; margin:0; padding:24px; list-style:none; background:#fff; font-family: var(--font, Archivo, system-ui, sans-serif); font-size:11.5px; font-weight:580; font-stretch:80%; letter-spacing:0.01em; line-height:14px; color:var(--ink-2,#5b5b5d); } .ds-patch { display:grid; justify-items:center; row-gap:5px; width:58px; } .ds-sw { --tint:color-mix(in srgb, var(--fill) 16%, #fff); width:100%; height:12px; background:var(--tint); box-shadow:inset 0 0 0 1px color-mix(in srgb, var(--edge) 60%, transparent); } .ds-patch.is-done, .ds-patch.is-current { color:var(--ink,#141414); } .ds-patch.is-done .ds-sw { background:var(--fill); box-shadow:none; } .ds-patch.is-current .ds-sw { animation:ds-ink 1s steps(1,end) infinite; } @keyframes ds-ink { 0% { background:var(--fill); box-shadow:none; } 50% { background:var(--tint); } } @media (prefers-reduced-motion: reduce) { .ds-patch.is-current .ds-sw { animation:none; background:var(--fill); box-shadow:none; } }"
+    },
+    {
+      "name": "Proof Sheet",
+      "kind": "card",
+      "refersTo": "sheet",
+      "description": "White stock on the booth surround, with crop marks at the trim corners.",
+      "html": "<div class=\"ds-booth\"><div class=\"ds-sheet\"><i class=\"ds-crop\"></i><p class=\"ds-head\">Turn a photo into a colouring page.</p></div></div>",
+      "css": ".ds-booth { padding:32px; background:var(--surround,#c9cacc); } .ds-sheet { position:relative; padding:72px 56px 56px; background:var(--stock,#fff); color:var(--ink,#141414); font-family: var(--font, Archivo, system-ui, sans-serif); box-shadow:0 1px 1px rgba(20,20,20,.06), 0 6px 14px -6px rgba(20,20,20,.18), 0 28px 56px -28px rgba(20,20,20,.42); } .ds-crop::before, .ds-crop::after { content:\"\"; position:absolute; background:#141414; } .ds-crop::before { top:72px; left:24px; width:22px; height:1px; } .ds-crop::after { left:56px; top:40px; width:1px; height:22px; } .ds-head { margin:0; font-size:clamp(27px,3.3vw,44px); font-weight:720; font-stretch:118%; letter-spacing:-0.03em; line-height:1.04; }"
+    },
+    {
+      "name": "Photo Plate (dropzone)",
+      "kind": "input",
+      "refersTo": "plate-photo",
+      "description": "Labelled photo field with intake; dragover turns it pale cyan with a cyan inset rule.",
+      "html": "<section class=\"ds-plate\"><h2 class=\"ds-plabel\">Photo</h2><div class=\"ds-field\" tabindex=\"0\"><button class=\"ds-pbtn\" type=\"button\">Choose photo</button><p class=\"ds-hint\">or drop one here</p></div></section>",
+      "css": ".ds-plate { font-family: var(--font, Archivo, system-ui, sans-serif); background:#fff; padding:16px; } .ds-plabel { margin:0 0 10px; font-size:13px; font-weight:620; font-stretch:86%; letter-spacing:.01em; color:var(--ink-2,#5b5b5d); } .ds-field { aspect-ratio:4/3; display:grid; place-content:center; justify-items:center; gap:14px; background:var(--plate-photo,#ececed); } .ds-field:hover, .ds-field:focus-within { background:#e3f2fa; box-shadow:inset 0 0 0 1.5px var(--cyan,#009fe3); } .ds-pbtn { height:44px; padding:0 20px; border:0; border-radius:0; background:#141414; color:#fff; font:inherit; font-size:15px; font-weight:620; font-stretch:104%; cursor:pointer; } .ds-pbtn:focus-visible { outline:2px solid var(--cyan-ink,#0076ad); outline-offset:3px; } .ds-hint { margin:0; font-size:14px; color:var(--ink-2,#5b5b5d); }"
+    },
+    {
+      "name": "Correction Slip",
+      "kind": "custom",
+      "refersTo": null,
+      "description": "Error state in the outline plate: magenta caret, plain reason, retry.",
+      "html": "<div class=\"ds-slip\" role=\"alert\"><svg viewBox=\"0 0 28 28\" width=\"26\" height=\"26\" aria-hidden=\"true\"><path d=\"M4 24 L14 4 L24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.2\" stroke-linejoin=\"miter\"/></svg><p>That file is over 5 MB. Choose a smaller photo.</p><button type=\"button\">Try another photo</button></div>",
+      "css": ".ds-slip { display:grid; justify-items:center; gap:14px; max-width:340px; padding:24px; text-align:center; background:var(--plate-outline,#f8f8f8); box-shadow:inset 0 0 0 1px var(--hair,#e1e1e2); font-family: var(--font, Archivo, system-ui, sans-serif); color:var(--ink,#141414); } .ds-slip svg { color:var(--magenta-ink,#c2006a); } .ds-slip p { margin:0; font-size:15px; } .ds-slip button { height:44px; padding:0 20px; border:0; border-radius:0; background:transparent; box-shadow:inset 0 0 0 1.5px #141414; font:inherit; font-size:15px; font-weight:620; cursor:pointer; } .ds-slip button:hover { background:#f0f0f1; } .ds-slip button:focus-visible { outline:2px solid var(--cyan-ink,#0076ad); outline-offset:3px; }"
+    },
+    {
+      "name": "Slug Line",
+      "kind": "custom",
+      "refersTo": null,
+      "description": "Condensed tabular facts in the bottom margin; job numbers in black.",
+      "html": "<p class=\"ds-slug\"><span>HoloPaint Cloud</span><span>AWS Lambda, Sydney</span><span class=\"ds-job\"><span>Job 2f62add2</span><span>1280×720</span><span>Traced in 12.5 s</span></span></p>",
+      "css": ".ds-slug { display:flex; gap:20px; margin:0; padding:16px; background:#fff; font-family: var(--font, Archivo, system-ui, sans-serif); font-size:12px; font-weight:560; font-stretch:80%; letter-spacing:.01em; line-height:16px; white-space:nowrap; font-variant-numeric:tabular-nums; color:var(--ink-2,#5b5b5d); } .ds-job { display:flex; gap:16px; margin-left:auto; color:var(--ink,#141414); }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Proof Sheet",
+    "overview": "The page is a printer's proof sheet laid in a viewing booth. A single sheet of white proof stock sits on a neutral grey surround; everything inside the trim is the job, everything in the margin is the press's own bookkeeping. The photo is the colour proof, the colouring page is the black plate, and the job's progress is the colour bar: Upload is cyan, Queue is magenta, Trace is yellow, Ready is key black. Registration black does all the talking; the four process inks appear only as the press uses them, as patches and as marks of state.\n\nDensity is low and the composition is literal. Crop marks sit at the four corners of the trim, registration targets sit at mid-height in the side margins, the colour bar is centred in the top margin, and a condensed slug line runs along the bottom margin carrying fixed facts on the left and the finished job's numbers on the right. The sheet is top-anchored under the masthead and grows downward only; nothing re-centres when content appears.\n\nMotion is press-like, not app-like. There is no easing anywhere. State changes are two-frame steps: the current colour-bar patch blinks between tint and solid on a `steps(1)` cycle, and the finished outline lands off register with cyan and magenta ghosts, then snaps into place in two steps over 180ms. Reduced motion removes both and shows the end state.",
+    "keyCharacteristics": [
+      "White proof stock on a neutral grey viewing-booth surround.",
+      "Registration black for type and controls; process inks only for state.",
+      "Printer's marks as structure: crop marks, registration targets, colour bar, slug line.",
+      "One family, Archivo, used across its width axis: wide headline, condensed labels and slug.",
+      "Square corners everywhere; hairlines instead of borders.",
+      "Two-frame stepped motion, never eased."
+    ],
+    "rules": [
+      {
+        "name": "The Inks Are State Rule",
+        "body": "Cyan, magenta and yellow never fill a surface, never colour body copy and never decorate. They appear as colour-bar patches, as the dragover and focus signals, as the error mark, as selection, and in the registration ghost. If an ink is on screen, it means something is happening.",
+        "section": "colors"
+      },
+      {
+        "name": "The Press Ink Rule",
+        "body": "Raw process cyan and magenta are for patches and fields; any ink that must read as a line or as text on white uses the darker press variant (cyan-ink, magenta-ink).",
+        "section": "colors"
+      },
+      {
+        "name": "The Tint-Then-Solid Rule",
+        "body": "A patch not yet reached is its ink at 16% on stock with a 60% ink hairline; a done patch is the solid ink with no edge; a failed patch keeps its tint and takes a magenta-ink edge and a 2px diagonal void.",
+        "section": "colors"
+      },
+      {
+        "name": "The Width Axis Rule",
+        "body": "Hierarchy is carried by font-stretch as much as by size: wide (115-118%) for the wordmark and headline, near-normal (104%) for buttons, condensed (80-86%) for labels, slug, patch names and the clock. Do not add a second family.",
+        "section": "typography"
+      },
+      {
+        "name": "The Sentence Case Rule",
+        "body": "Every label, patch name, button and slug entry is sentence case. No uppercase tracking, no all-caps labels.",
+        "section": "typography"
+      },
+      {
+        "name": "The One Sheet Rule",
+        "body": "Only the proof sheet casts a shadow. Nothing on the stock is lifted.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "**Do** keep every surface square (0px) and draw edges as inset hairlines.",
+      "**Do** use process inks only to signal job state, dragover, focus, selection or error, and use cyan-ink and magenta-ink wherever an ink must read as a line or text.",
+      "**Do** carry hierarchy with Archivo's width axis: wide for the headline, condensed for labels, slug, patch names and numerals.",
+      "**Do** set state changes as two-frame steps with no easing (patch blink `steps(1)` over 1s; registration snap `steps(2)` over 180ms) and remove them under reduced motion.",
+      "**Do** keep the sheet top-anchored with a deeper top margin (72px, 58px mobile) for the colour bar; let it grow downward only.",
+      "**Do** size plates from the photo's aspect ratio at full width, with a 15rem floor on the outline plate while progress or the slip shows.",
+      "**Do** show real timings with tabular numerals.",
+      "**Do** write all copy in sentence case, plainly, with no em dashes."
+    ],
+    "donts": [
+      "**Don't** fill surfaces, backgrounds or body text with cyan, magenta or yellow.",
+      "**Don't** round corners, or add borders that change box size; use inset hairlines.",
+      "**Don't** add shadows to anything on the sheet; only the sheet itself rests on the booth.",
+      "**Don't** use eased transitions, fades or slides for state changes.",
+      "**Don't** add a second typeface or uppercase tracked labels.",
+      "**Don't** vertically centre the sheet or reveal empty action rows before a result exists.",
+      "**Don't** fake or animate progress that the job has not reported."
+    ]
+  }
+}

@@ -18,7 +18,7 @@ browser ─► API Gateway ─► api Lambda ─► presigned POST ─► S3 ─
 | M3 Terraform: S3, SQS + DLQ, DynamoDB, Lambdas, HTTP API | ✅ |
 | M4 CI (GitHub Actions) + CD (CodePipeline/CodeBuild), smoke test + rollback | |
 | M5 CloudWatch dashboard + alarms, k6 load test | |
-| M6 Demo page | |
+| M6 Demo page | local ✅, hosting next |
 
 ## M1: compressing the model without changing its output
 
@@ -158,6 +158,21 @@ threads, FP32 vs INT8) is M5.
   AL2023 locks repositories to the image's release. `dnf upgrade
   --releasever=latest` took the image from 12 HIGH / 20 MEDIUM / 5 LOW findings
   to **0**.
+
+### Demo page
+
+`web/` is a static page (no build step), styled as a printer's proof sheet. The
+photo is the colour proof, the colouring page is the black plate, and the CMYK colour
+bar is the job's state: upload, queue, trace, ready.
+
+The browser does the cheap work first. It decodes the photo, applies EXIF
+rotation, flattens it onto white and caps it at 1600 px as a JPEG. Then it uploads
+straight to S3 and polls the job.
+
+```bash
+cp web/config.example.js web/config.js   # set window.HOLOPAINT_API to the api_url output
+python3 -m http.server 8000 -d web       # open http://localhost:8000 (an allowed CORS origin)
+```
 
 ### Deploy
 
