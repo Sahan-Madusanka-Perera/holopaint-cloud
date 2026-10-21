@@ -17,6 +17,7 @@ import json
 import os
 import re
 import time
+from datetime import datetime
 from urllib.parse import unquote_plus
 
 import boto3
@@ -120,11 +121,26 @@ def process_upload(bucket: str, key: str) -> None:
 
 
 def _s3_objects(body: str):
-    """S3 -> SQS message body -> (bucket, key) pairs. Skips S3's s3:TestEvent."""
+    """S3 -> SQS message body -> (bucket, key, event time) triples. Skips S3's s3:TestEvent."""
     message = json.loads(body)
     for record in message.get("Records", []):
         if record.get("eventName", "").startswith("ObjectCreated"):
-            yield record["s3"]["bucket"]["name"], unquote_plus(record["s3"]["object"]["key"])
+            yield record["s3"]["bucket"]["name"], unquote_plus(record["s3"]["object"]["key"]), record.get("eventTime")
+
+
+def _record_delivery(uploaded_at: str | None, attributes: dict) -> None:
+    """How long an upload took to reach a worker: S3 event -> SQS -> this Lambda
+    (DeliveryDelay), and the SQS part of that alone (QueueDelay)."""
+    if not uploaded_at:
+        return
+    try:
+        uploaded_ms = datetime.fromisoformat(uploaded_at.replace("Z", "+00:00")).timestamp() * 1000
+    except ValueError:
+        return
+    now_ms = time.time() * 1000
+    metrics.add_metric(name="DeliveryDelay", unit=MetricUnit.Milliseconds, value=round(now_ms - uploaded_ms))
+    if attributes.get("SentTimestamp", "").isdigit():
+        metrics.add_metric(name="QueueDelay", unit=MetricUnit.Milliseconds, value=round(now_ms - int(attributes["SentTimestamp"])))
 
 
 def _fail_job_for_key(key: str, reason: str) -> None:
@@ -142,7 +158,8 @@ def lambda_handler(event, context):
     failures = []
     for record in event.get("Records", []):
         try:
-            for bucket, key in _s3_objects(record["body"]):
+            for bucket, key, uploaded_at in _s3_objects(record["body"]):
+                _record_delivery(uploaded_at, record.get("attributes", {}))
                 try:
                     process_upload(bucket, key)
                 except Exception:

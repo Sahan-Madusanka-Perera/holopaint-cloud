@@ -135,6 +135,18 @@ resource "aws_cloudwatch_dashboard" "this" {
         }
       },
       {
+        type = "metric", x = 0, y = 18, width = 12, height = 6
+        properties = {
+          title  = "Upload to worker (ms)"
+          region = var.region, view = "timeSeries", period = 60
+          metrics = [
+            ["HoloPaint", "DeliveryDelay", "service", "worker", { stat = "p50", label = "S3 event to worker, p50" }],
+            ["...", { stat = "p95", label = "S3 event to worker, p95" }],
+            ["HoloPaint", "QueueDelay", "service", "worker", { stat = "p95", label = "in SQS, p95" }],
+          ]
+        }
+      },
+      {
         type = "alarm", x = 12, y = 12, width = 12, height = 6
         properties = {
           title  = "Alarms"

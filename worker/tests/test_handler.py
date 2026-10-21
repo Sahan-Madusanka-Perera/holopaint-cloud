@@ -1,6 +1,8 @@
 import json
+import time
 import uuid
 from dataclasses import dataclass
+from datetime import datetime, timezone
 
 import boto3
 import cv2
@@ -51,14 +53,16 @@ def new_job(aws, data: bytes | None) -> str:
 
 
 def sqs_event(key: str, receives: int = 1, message_id: str = "msg-1") -> dict:
+    sent = time.time() - 1
     body = {"Records": [{
         "eventName": "ObjectCreated:Post",
+        "eventTime": datetime.fromtimestamp(sent - 1, timezone.utc).isoformat(timespec="milliseconds").replace("+00:00", "Z"),
         "s3": {"bucket": {"name": BUCKET}, "object": {"key": key}},
     }]}
     return {"Records": [{
         "messageId": message_id,
         "body": json.dumps(body),
-        "attributes": {"ApproximateReceiveCount": str(receives)},
+        "attributes": {"ApproximateReceiveCount": str(receives), "SentTimestamp": str(int(sent * 1000))},
     }]}
 
 
@@ -174,3 +178,14 @@ def test_one_bad_message_does_not_fail_the_batch(aws):
     records = sqs_event(f"uploads/{good}", message_id="ok")["Records"] + \
         sqs_event(f"uploads/{bad}", message_id="retry")["Records"]
     assert invoke({"Records": records}) == {"batchItemFailures": [{"itemIdentifier": "retry"}]}
+
+
+def test_delivery_delays_are_recorded(aws):
+    handler.metrics.clear_metrics()
+    handler._record_delivery("2026-10-21T02:08:31.123Z", {"SentTimestamp": str(int(time.time() * 1000) - 2000)})
+    recorded = handler.metrics.metric_set
+    assert recorded["DeliveryDelay"]["Value"][0] > 0
+    assert 1900 <= recorded["QueueDelay"]["Value"][0] < 10_000
+    handler._record_delivery("not a time", {})  # malformed events are skipped, not fatal
+    handler._record_delivery(None, {})
+    handler.metrics.clear_metrics()
