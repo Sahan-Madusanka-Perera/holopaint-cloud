@@ -9,14 +9,14 @@ the U-Net I trained from scratch on BSDS500 for
 browser ─► API Gateway ─► api Lambda ─► presigned POST ─► S3 ─► SQS (+DLQ) ─► worker Lambda (ONNX INT8) ─► S3
 ```
 
-**Status:** deployed on AWS (Sydney, `ap-southeast-2`); M1–M3 done. Next is M4 (CI/CD).
+**Status:** deployed on AWS (Sydney, `ap-southeast-2`) and deployed by its own pipeline; M1–M4 done. Next is M5 (dashboards, alarms, load test).
 
 | Milestone | |
 |---|---|
 | M1 Compress the model (ONNX INT8) + parity gate | ✅ |
 | M2 Worker Lambda container + tests + local end-to-end | ✅ |
 | M3 Terraform: S3, SQS + DLQ, DynamoDB, Lambdas, HTTP API | ✅ |
-| M4 CI (GitHub Actions) + CD (CodePipeline/CodeBuild), smoke test + rollback | |
+| M4 CI (GitHub Actions) + CD (CodePipeline/CodeBuild), smoke test + rollback | ✅ |
 | M5 CloudWatch dashboard + alarms, k6 load test | |
 | M6 Demo page, with painting by hand | local ✅, hosting next |
 
@@ -272,8 +272,8 @@ the work is split by what each side is allowed to see:
 
 ```
 GitHub Actions (public, no AWS)          CodePipeline in AWS (on push to main)
-  pytest (33; 9 need the model, skip)      Source   CodeConnections -> GitHub
-  web unit tests (24)                      Build    arm64 CodeBuild: pytest (42) with the real model
+  pytest (35; 9 need the model, skip)      Source   CodeConnections -> GitHub
+  web unit tests (24)                      Build    arm64 CodeBuild: pytest (44) with the real model
   terraform fmt + validate (3 stacks)               build the worker image
   arm64 image build + Trivy                         parity gate inside that image
     (fail on fixable HIGH/CRITICAL)                 push :<commit> to ECR
@@ -306,6 +306,30 @@ GitHub Actions (public, no AWS)          CodePipeline in AWS (on push to main)
   `api/`, `infra/app` and modules, `ci/` and the gate and deploy scripts, so a web
   or docs commit doesn't spend build minutes.
 
+**First run** (commit b25ed1a, arm64 CodeBuild `BUILD_GENERAL1_SMALL`):
+
+| Step | Time |
+|---|---:|
+| Source → Build → Deploy, end to end | 5 min 40 s |
+| Build: 42 tests with the real model | 37 s |
+| Build: parity gate inside the image (mean IoU 0.9907, worst 0.9821, same as on the Mac) | 107 s |
+| Deploy: `terraform apply` + live smoke test | 1 min 30 s |
+
+**Rollback, demonstrated.** A commit on a throwaway branch slipped the API's upload
+limit from 5 MB to 5 KB. Every test passed, because the API's tests read the
+constant back, so the pipeline shipped it. From the deploy log:
+
+| | |
+|---|---|
+| +0 s | the API's `live` alias moves to the broken version |
+| +16 s | the smoke test's 20 KB upload is refused by S3 (`EntityTooLarge`, max 5120) |
+| +18 s | both aliases are back on the previous versions (worker v4, API v1) |
+| +26 s | the second smoke test passes: the previous release is serving again |
+
+The run ends **Failed**, as it should. The broken release served for 18 seconds.
+The follow-up is `api/tests/test_limits.py`, which pins the API, worker and page
+limits together, so the same slip now fails in CI before it can deploy.
+
 ## Reproduce
 
 Needs the HoloDraw repo next to this one (for the weights and the BSDS500/BIPED
@@ -323,7 +347,7 @@ cp ../HoloDraw/holopaint_unet.pth artifacts/
 .venv/bin/python model/parity_bundle.py     # -> artifacts/parity/ (references for the CD gate)
 PYTHONPATH=worker .venv/bin/python model/parity_gate.py artifacts/parity --model artifacts/unet_int8_static.onnx
 
-.venv/bin/python -m pytest                  # 42 tests (worker + API)
+.venv/bin/python -m pytest                  # 44 tests (worker + API)
 node --test "web/tests/*.test.mjs"          # 24 tests (gestures, zoom, shapes, fill)
 .venv/bin/python scripts/local_e2e.py       # build image, run it against moto, check upload -> PNG
 ```
