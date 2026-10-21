@@ -264,6 +264,48 @@ scripts/tf.sh -chdir=infra/app apply -var worker_image_tag=<tag> -var model_vers
 .venv/bin/python scripts/smoke_test.py "$(scripts/tf.sh -chdir=infra/app output -raw api_url)"
 ```
 
+## M4: CI and CD, split by what each side may touch
+
+The account's SCP blocks IAM OIDC providers, so GitHub Actions can't assume a role
+in AWS. The model weights and the BSDS500/BIPED parity photos also stay private. So
+the work is split by what each side is allowed to see:
+
+```
+GitHub Actions (public, no AWS)          CodePipeline in AWS (on push to main)
+  pytest (33; 9 need the model, skip)      Source   CodeConnections -> GitHub
+  web unit tests (24)                      Build    arm64 CodeBuild: pytest (42) with the real model
+  terraform fmt + validate (3 stacks)               build the worker image
+  arm64 image build + Trivy                         parity gate inside that image
+    (fail on fixable HIGH/CRITICAL)                 push :<commit> to ECR
+                                           Deploy   terraform apply infra/app
+                                                    smoke test the live system
+                                                    failed? move both aliases back
+```
+
+- **The parity gate runs inside the image about to ship**, on Graviton, against
+  outlines the original PyTorch model drew for the 30 parity photos
+  (`model/parity_bundle.py` freezes them once into the private model registry).
+  No PyTorch is needed at deploy time. It passes at mean IoU 0.9907, worst 0.9821,
+  identical to the M1 numbers. Changing the pipeline's default threshold from 0.30
+  to 0.35, as a careless edit might, fails it on all 30 photos (worst 0.36).
+- **Rollback is an alias move.** Both Lambdas are invoked through a `live` alias.
+  `scripts/cd_deploy.sh` records the live versions, applies, and runs
+  `scripts/smoke_test.py` (create a job, upload, poll, download the result and all
+  five detail levels, check S3 refuses a bad upload). If it fails, it points both
+  aliases back at the old versions, smoke-tests again, and fails the pipeline.
+  Infrastructure changes are not rolled back, only code.
+- **One role per stage.** The pipeline role only moves artifacts and starts builds.
+  Build can read the model registry and push to the worker repository. Deploy can
+  manage the app stack's resources by name, and the IAM part names the two app
+  roles exactly, so a deploy can't edit the CI/CD roles or create new ones.
+- **Supply chain:** every GitHub Action is pinned to a commit SHA (trivy-action had
+  its tags hijacked in March 2026; v0.36.0 is a clean release after that).
+  CodeBuild checks Terraform's zip against HashiCorp's SHA-256, and the provider
+  lock files carry hashes for darwin_arm64, linux_arm64 and linux_amd64.
+- **Only deployable changes deploy.** The pipeline trigger filters on `worker/`,
+  `api/`, `infra/app` and modules, `ci/` and the gate and deploy scripts, so a web
+  or docs commit doesn't spend build minutes.
+
 ## Reproduce
 
 Needs the HoloDraw repo next to this one (for the weights and the BSDS500/BIPED
@@ -278,6 +320,8 @@ cp ../HoloDraw/holopaint_unet.pth artifacts/
 .venv/bin/python model/export_onnx.py       # -> artifacts/unet_fp32.onnx
 .venv/bin/python model/quantize.py          # -> artifacts/unet_int8_{static,dynamic}.onnx
 .venv/bin/python model/parity_eval.py --gate unet_int8_static.onnx   # -> results/parity.{md,json}
+.venv/bin/python model/parity_bundle.py     # -> artifacts/parity/ (references for the CD gate)
+PYTHONPATH=worker .venv/bin/python model/parity_gate.py artifacts/parity --model artifacts/unet_int8_static.onnx
 
 .venv/bin/python -m pytest                  # 42 tests (worker + API)
 node --test "web/tests/*.test.mjs"          # 24 tests (gestures, zoom, shapes, fill)
@@ -288,10 +332,13 @@ node --test "web/tests/*.test.mjs"          # 24 tests (gestures, zoom, shapes, 
 
 ```
 model/    unet.py  common.py  check_port.py  export_onnx.py  quantize.py  parity_eval.py
+          parity_bundle.py  parity_gate.py
 worker/   handler.py  photo.py  pipeline.py  onnx_predictor.py  Dockerfile  tests/
 api/      app.py  tests/
-infra/    bootstrap/  app/  modules/{private_bucket,queue,jobs_table,worker,api}/
-scripts/  tf.sh  push_worker.sh  smoke_test.py  local_e2e.py
+infra/    bootstrap/  app/  cicd/  modules/{private_bucket,queue,jobs_table,worker,api}/
+ci/       build.yml  deploy.yml                      (CodeBuild buildspecs)
+.github/  workflows/ci.yml
+scripts/  tf.sh  push_worker.sh  smoke_test.py  local_e2e.py  cd_deploy.sh
 web/      index.html  styles.css  app.js  gestures.js  hand.js  paint.js  shapes.js  view.js  fill.js  tests/
 results/  parity.md  parity.json                   (side-by-side PNGs are git-ignored)
 artifacts/  weights and ONNX files (git-ignored; S3 model registry from M3)

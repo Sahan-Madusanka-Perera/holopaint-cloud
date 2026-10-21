@@ -1,0 +1,24 @@
+# CodePipeline "Deploy" stage: apply infra/app with the image the Build stage gated,
+# smoke test the live system, and roll back if it fails (scripts/cd_deploy.sh).
+version: 0.2
+
+env:
+  shell: bash
+  variables:
+    TERRAFORM_VERSION: "1.16.6"
+    # SHA-256 of terraform_1.16.6_linux_arm64.zip, from HashiCorp's SHA256SUMS
+    TERRAFORM_SHA256: "a750b5a11038f165846b2658c40c88cd7070aa67a61bab431a14ba27928ea9ea"
+
+phases:
+  install:
+    runtime-versions:
+      python: 3.12
+    commands:
+      - curl -sSfo /tmp/terraform.zip "https://releases.hashicorp.com/terraform/${TERRAFORM_VERSION}/terraform_${TERRAFORM_VERSION}_linux_arm64.zip"
+      - echo "$TERRAFORM_SHA256  /tmp/terraform.zip" | sha256sum -c -
+      - unzip -oq /tmp/terraform.zip -d /usr/local/bin
+      - python3.12 -m venv /tmp/smoke
+      - /tmp/smoke/bin/pip install --quiet "opencv-python-headless==4.14.0.94" "numpy==2.5.4"
+  build:
+    commands:
+      - PYTHON=/tmp/smoke/bin/python scripts/cd_deploy.sh "$IMAGE_TAG" "$MODEL_VERSION"

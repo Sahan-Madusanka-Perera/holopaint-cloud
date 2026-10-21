@@ -29,3 +29,11 @@ output "worker_version" {
 output "worker_alias_arn" {
   value = module.worker.alias_arn
 }
+
+output "api_function" {
+  value = module.api.function_name
+}
+
+output "api_version" {
+  value = module.api.version
+}

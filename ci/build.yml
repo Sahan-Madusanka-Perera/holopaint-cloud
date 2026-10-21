@@ -1,0 +1,49 @@
+# CodePipeline "Build" stage, on an arm64 (Graviton) CodeBuild host like the Lambda.
+# 1. pytest with the real model, which GitHub's CI can't have (weights stay private)
+# 2. build the worker image
+# 3. parity gate inside that image: the exact bytes that will ship, on Graviton,
+#    against PyTorch reference outlines from the private model registry
+# 4. push it to ECR as :<commit>; tags are immutable, so a rerun reuses the image
+version: 0.2
+
+env:
+  shell: bash
+  exported-variables:
+    - IMAGE_TAG
+    - MODEL_VERSION
+
+phases:
+  install:
+    runtime-versions:
+      python: 3.12
+  pre_build:
+    commands:
+      - IMAGE_TAG="${COMMIT_ID:0:12}"
+      - aws s3 cp --no-progress "s3://$MODEL_BUCKET/models/unet_int8_static.onnx" artifacts/unet_int8_static.onnx
+      - MODEL_VERSION="int8-static-$(sha256sum artifacts/unet_int8_static.onnx | cut -c1-12)"
+      - aws s3 sync --no-progress --only-show-errors "s3://$MODEL_BUCKET/parity/v1/" parity/
+      - echo "image $IMAGE_TAG, model $MODEL_VERSION, parity set $(ls parity/images | wc -l) photos"
+      - python3.12 -m venv .venv
+      - .venv/bin/pip install --quiet -r worker/requirements-dev.txt
+      - .venv/bin/python -m pytest -q
+  build:
+    commands:
+      - REGISTRY="${ECR_REPOSITORY%%/*}"
+      - aws ecr get-login-password | docker login --username AWS --password-stdin "$REGISTRY"
+      - |
+        if aws ecr describe-images --repository-name "${ECR_REPOSITORY##*/}" --image-ids imageTag="$IMAGE_TAG" >/dev/null 2>&1; then
+          echo "image $IMAGE_TAG already passed the gate and was pushed"
+          docker pull --quiet "$ECR_REPOSITORY:$IMAGE_TAG"
+        else
+          # Lambda rejects image indexes with attestations, which buildx adds by default.
+          FLAGS=""; if docker buildx version >/dev/null 2>&1; then FLAGS="--provenance=false --sbom=false"; fi
+          docker build --platform linux/arm64 $FLAGS --build-arg MODEL_VERSION="$MODEL_VERSION" \
+            -f worker/Dockerfile -t "$ECR_REPOSITORY:$IMAGE_TAG" .
+        fi
+      - docker run --rm --entrypoint python3 -e PYTHONPATH=/var/task
+        -v "$PWD/parity:/parity:ro" -v "$PWD/model/parity_gate.py:/gate/parity_gate.py:ro"
+        "$ECR_REPOSITORY:$IMAGE_TAG" /gate/parity_gate.py /parity
+      - |
+        if ! aws ecr describe-images --repository-name "${ECR_REPOSITORY##*/}" --image-ids imageTag="$IMAGE_TAG" >/dev/null 2>&1; then
+          docker push --quiet "$ECR_REPOSITORY:$IMAGE_TAG"
+        fi

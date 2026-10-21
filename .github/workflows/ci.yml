@@ -1,0 +1,74 @@
+# CI on every push and pull request, with no AWS access: the account's SCP blocks
+# OIDC providers, and the model weights and parity photos stay private. Tests that
+# need the model are skipped here and run in CodeBuild (ci/build.yml), which also
+# runs the parity gate before anything ships.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Tests (worker, API, web)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: worker/requirements*.txt
+      - run: pip install -r worker/requirements-dev.txt
+      - name: pytest (model tests skip here; CodeBuild runs them)
+        run: python -m pytest -q -rs
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "24"
+      - name: Web unit tests (gestures, zoom, shapes, fill)
+        run: node --test "web/tests/*.test.mjs"
+
+  terraform:
+    name: Terraform fmt and validate
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e # v4.0.1
+        with:
+          terraform_version: "1.16.6"
+          terraform_wrapper: false
+      - run: terraform fmt -check -recursive infra
+      - name: validate every stack
+        run: |
+          for stack in bootstrap app cicd; do
+            terraform -chdir=infra/$stack init -backend=false -input=false -lockfile=readonly >/dev/null
+            terraform -chdir=infra/$stack validate
+          done
+
+  image:
+    name: Worker image (arm64) + Trivy
+    runs-on: ubuntu-24.04-arm
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      # The weights are private, so build with a stand-in file: the scan is about
+      # the OS and Python packages. CodeBuild builds the real image and ECR scans it too.
+      - name: Build with a stand-in model
+        run: |
+          install -D /dev/null artifacts/unet_int8_static.onnx
+          docker build --platform linux/arm64 -f worker/Dockerfile -t holopaint-worker:ci .
+      - name: Trivy (fail on fixable HIGH or CRITICAL)
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          image-ref: holopaint-worker:ci
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          vuln-type: os,library
+          exit-code: "1"

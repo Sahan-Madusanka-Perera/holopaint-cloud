@@ -1,5 +1,6 @@
 # HTTP API (throttled) in front of a small zip Lambda that creates jobs and
-# hands out presigned upload/download URLs.
+# hands out presigned upload/download URLs. The API calls the function through
+# its "live" alias, so CD can roll a bad release back by moving the alias.
 
 data "archive_file" "code" {
   type        = "zip"
@@ -68,6 +69,7 @@ resource "aws_lambda_function" "this" {
   source_code_hash = data.archive_file.code.output_base64sha256
   memory_size      = 256
   timeout          = 10
+  publish          = true
 
   environment {
     variables = {
@@ -77,6 +79,12 @@ resource "aws_lambda_function" "this" {
   }
 
   depends_on = [aws_cloudwatch_log_group.this, aws_iam_role_policy.this]
+}
+
+resource "aws_lambda_alias" "live" {
+  name             = "live"
+  function_name    = aws_lambda_function.this.function_name
+  function_version = aws_lambda_function.this.version
 }
 
 resource "aws_apigatewayv2_api" "this" {
@@ -94,7 +102,7 @@ resource "aws_apigatewayv2_api" "this" {
 resource "aws_apigatewayv2_integration" "lambda" {
   api_id                 = aws_apigatewayv2_api.this.id
   integration_type       = "AWS_PROXY"
-  integration_uri        = aws_lambda_function.this.invoke_arn
+  integration_uri        = aws_lambda_alias.live.invoke_arn
   payload_format_version = "2.0"
 }
 
@@ -120,6 +128,7 @@ resource "aws_lambda_permission" "api" {
   statement_id  = "AllowHttpApiInvoke"
   action        = "lambda:InvokeFunction"
   function_name = aws_lambda_function.this.function_name
+  qualifier     = aws_lambda_alias.live.name
   principal     = "apigateway.amazonaws.com"
   source_arn    = "${aws_apigatewayv2_api.this.execution_arn}/*/*"
 }

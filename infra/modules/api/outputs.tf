@@ -9,3 +9,7 @@ output "function_name" {
 output "api_id" {
   value = aws_apigatewayv2_api.this.id
 }
+
+output "version" {
+  value = aws_lambda_function.this.version
+}

@@ -97,6 +97,14 @@ def main() -> int:
     print(f"ok   DONE {state['width']}x{state['height']}, worker {state['duration_ms']} ms, "
           f"upload->done {total - (uploaded - started):.1f} s, total {total:.1f} s -> {out.relative_to(ROOT)}")
 
+    # Every detail level the page offers must download too.
+    levels = state.get("detail_urls", [])
+    assert len(levels) == 5 and 0 <= state["detail"] < 5, f"expected 5 detail levels, got {len(levels)}"
+    for i, url in enumerate(levels, 1):
+        status, level_png = request("GET", url)
+        assert status == 200 and level_png[:4] == b"\x89PNG", f"detail level {i} -> {status}"
+    print(f"ok   5 detail levels download, suggested level {state['detail'] + 1}")
+
     # 3. API input validation
     assert request("GET", f"{api}/jobs/not-a-job")[0] == 400
     assert request("GET", f"{api}/jobs/{'0' * 32}")[0] == 404
