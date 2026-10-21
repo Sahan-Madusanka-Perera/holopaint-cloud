@@ -1,12 +1,18 @@
 # HoloPaint Cloud
 
-Upload a photo, get back a colouring page: black outlines whose regions all close, so
-they can be flood-filled. It runs on AWS as an event-driven serverless pipeline. The model is
+Upload a photo, get back a colouring page: black outlines with their small gaps bridged,
+so regions can be flood-filled. It runs on AWS as an event-driven serverless pipeline. The model is
 the U-Net I trained from scratch on BSDS500 for
 [HoloDraw](https://github.com/Sahan-Madusanka-Perera/HoloDraw).
 
 **Try it: [sahan-madusanka-perera.github.io/holopaint-cloud](https://sahan-madusanka-perera.github.io/holopaint-cloud/)**.
 Drop a photo, then paint the page by hand in front of your webcam (or with a mouse).
+
+![A photo traced into a colouring page on AWS, then painted: a stroke drawn by a tracked hand, then four fills](docs/demo.gif)
+
+<sub>Recorded on the live site in headless Chrome. The hand is MediaPipe's own test photo
+(Apache-2.0) on a fake webcam; the fills are mouse taps. Walrus photo by Jay Ruzesky on
+Unsplash, via Lorem Picsum.</sub>
 
 ```mermaid
 flowchart LR
@@ -31,7 +37,7 @@ flowchart LR
   worker -. "metrics" .-> cw
 ```
 
-**Status:** deployed on AWS (Sydney, `ap-southeast-2`) and deployed by its own pipeline; M1–M4 done. Next is M5 (dashboards, alarms, load test).
+**Status:** deployed on AWS (Sydney, `ap-southeast-2`) by its own pipeline, monitored, load-tested and live on GitHub Pages; M1–M6 done.
 
 | Milestone | |
 |---|---|
@@ -39,7 +45,7 @@ flowchart LR
 | M2 Worker Lambda container + tests + local end-to-end | ✅ |
 | M3 Terraform: S3, SQS + DLQ, DynamoDB, Lambdas, HTTP API | ✅ |
 | M4 CI (GitHub Actions) + CD (CodePipeline/CodeBuild), smoke test + rollback | ✅ |
-| M5 CloudWatch dashboard + alarms, k6 load test | |
+| M5 CloudWatch dashboard + alarms, k6 load test, tuning | ✅ |
 | M6 Demo page, with painting by hand, on GitHub Pages | ✅ |
 
 ## M1: compressing the model without changing its output
@@ -298,8 +304,8 @@ the work is split by what each side is allowed to see:
 
 ```
 GitHub Actions (public, no AWS)          CodePipeline in AWS (on push to main)
-  pytest (35; 9 need the model, skip)      Source   CodeConnections -> GitHub
-  web unit tests (24)                      Build    arm64 CodeBuild: pytest (44) with the real model
+  pytest (38; 9 need the model, skip)      Source   CodeConnections -> GitHub
+  web unit tests (24)                      Build    arm64 CodeBuild: pytest (47) with the real model
   terraform fmt + validate (3 stacks)               build the worker image
   arm64 image build + Trivy                         parity gate inside that image
     (fail on fixable HIGH/CRITICAL)                 push :<commit> to ECR
@@ -356,6 +362,72 @@ The run ends **Failed**, as it should. The broken release served for 18 seconds.
 The follow-up is `api/tests/test_limits.py`, which pins the API, worker and page
 limits together, so the same slip now fails in CI before it can deploy.
 
+## M5: measured under load, then tuned
+
+**Monitoring** (`infra/modules/monitoring`, deployed by the pipeline): one dashboard and
+five alarms to an SNS topic: dead-letter queue not empty, an upload waiting over
+5 minutes, worker crashes, retried failures, and API 5xx. All within CloudWatch's
+free 10 alarms and 3 dashboards. The worker also reports how long each upload took to
+reach it (`DeliveryDelay`, `QueueDelay`) and which CPU it ran on.
+
+**Load test** (`loadtest/flow.js`, k6): each iteration does what the page does: create
+a job, upload the photo to S3 with the presigned POST, and poll until DONE. Photos are
+three fixed Unsplash photos via Lorem Picsum, fetched at test time. Run from Sri Lanka
+against Sydney (310 ms per API round trip).
+
+| Final configuration, 640×480 photos | |
+|---|---:|
+| Steady 12 photos/min for 5 min: photo ready, median / p95 | **7.1 s / 7.7 s** |
+| of which the worker | 3.7 s |
+| of which S3 event → worker (SQS alone: 17 ms) | 0.74 s |
+| failed jobs, HTTP errors | 0 of 61, 0 of 366 |
+| Capacity (10 users in a loop, 2 workers) | **23 photos/min** |
+
+**What the measurements changed:**
+- **The memory buys CPU, not memory.** The worker peaks at 1.3 GB, but Lambda gives
+  1.7 vCPUs at 3,008 MB against 1 vCPU at 1,769 MB. On the same CPU, 3,008 MB with 2
+  ONNX threads is 37–40% faster for 6–18% more per photo, so it stays. Larger sizes
+  were not an option: this account caps Lambda at 3,008 MB.
+- **Two CPUs for the price of one.** Two workers with identical settings were 40%
+  apart. Logging `/proc/cpuinfo` showed why: Lambda's arm64 fleet places environments on
+  Graviton2 or Graviton3. Every timing here is compared on the same generation.
+
+  | Worker | CPU | 640×480 | 1600×1200 |
+  |---|---|---:|---:|
+  | 1,769 MB, 1 thread | Graviton3 | 5.9 s | 36.6 s |
+  | | Graviton2 | 8.2 s | 50.3 s |
+  | **3,008 MB, 2 threads** | Graviton3 | **3.7 s** | **22.8 s** |
+  | | Graviton2 | 5.7 s | 33.1 s |
+- **Batches of two.** Under saturation the workers were busy only 63% of the time:
+  each SQS hand-off left one idle for about 2.3 s. Taking up to two photos per
+  invocation raised throughput from 20.4 to 23.8 photos/min on the same workers and cut
+  p95 wait under load from 36 s to 26 s; two simultaneous uploads were no slower. A
+  worker won't start a second photo it might not finish before the timeout: it hands
+  it straight back to the queue.
+
+**Cost** (Sydney prices from the AWS Price List API, measured times):
+
+| Per 1,000 photos | Graviton3 | Graviton2 |
+|---|---:|---:|
+| 640×480 | $0.20 | $0.27 |
+| 1600×1200 (the most the page uploads) | $0.94 | $1.35 |
+
+The worker is three quarters of it; API Gateway, the API Lambda, S3 and SQS add $0.05
+per 1,000. Lambda's always-free tier covers about 24,000–37,000 small photos a month.
+Nothing runs when idle: DynamoDB's provisioned 5/5, the alarms, the dashboard and the
+custom metrics are all inside always-free limits. The one standing cost is about 1.5 GB
+of worker images kept for rollback in ECR (500 MB free in the first year, then about
+$0.10 a month). The bill so far is $0.00, with the Free plan's credits untouched, after
+development, seven pipeline runs and about 1,000 test photos.
+
+**Known limit: fewer lines, fewer closed regions.** Gap bridging joins line ends
+that nearly meet, so the most detailed levels give mostly closed regions. At the less
+detailed levels lines are sparse and often end in open space, and a fill then spreads
+across the page (on 12 test photos, the largest region at the least detailed level
+covers 67–98% of the page). As in HoloDraw, a fill stops at paint, so drawing a line
+across a gap closes it. Extending lines to the page border didn't help (I measured
+it): the open ends are mid-page.
+
 ## Reproduce
 
 Needs the HoloDraw repo next to this one (for the weights and the BSDS500/BIPED
@@ -373,9 +445,13 @@ cp ../HoloDraw/holopaint_unet.pth artifacts/
 .venv/bin/python model/parity_bundle.py     # -> artifacts/parity/ (references for the CD gate)
 PYTHONPATH=worker .venv/bin/python model/parity_gate.py artifacts/parity --model artifacts/unet_int8_static.onnx
 
-.venv/bin/python -m pytest                  # 44 tests (worker + API)
+.venv/bin/python -m pytest                  # 47 tests (worker + API)
 node --test "web/tests/*.test.mjs"          # 24 tests (gestures, zoom, shapes, fill)
 .venv/bin/python scripts/local_e2e.py       # build image, run it against moto, check upload -> PNG
+
+loadtest/fetch_photos.sh                    # three Unsplash photos via Lorem Picsum
+k6 run -e API=<api-url> -e SCENARIO=steady -e RATE=12 loadtest/flow.js
+k6 run -e API=<api-url> -e SCENARIO=saturate -e VUS=10 -e POLL=3 loadtest/flow.js
 ```
 
 ## Layout
@@ -385,7 +461,9 @@ model/    unet.py  common.py  check_port.py  export_onnx.py  quantize.py  parity
           parity_bundle.py  parity_gate.py
 worker/   handler.py  photo.py  pipeline.py  onnx_predictor.py  Dockerfile  tests/
 api/      app.py  tests/
-infra/    bootstrap/  app/  cicd/  modules/{private_bucket,queue,jobs_table,worker,api}/
+infra/    bootstrap/  app/  cicd/  modules/{private_bucket,queue,jobs_table,worker,api,monitoring}/
+loadtest/ flow.js  fetch_photos.sh                  (k6)
+docs/     demo.gif
 ci/       build.yml  deploy.yml                      (CodeBuild buildspecs)
 .github/  workflows/ci.yml  workflows/pages.yml
 scripts/  tf.sh  push_worker.sh  smoke_test.py  local_e2e.py  cd_deploy.sh
