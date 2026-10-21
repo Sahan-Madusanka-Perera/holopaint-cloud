@@ -1,0 +1,52 @@
+# Publish web/ to GitHub Pages. config.js (the API URL) stays out of git; it is
+# written here from the HOLOPAINT_API repository variable. The URL isn't a secret,
+# since every visitor's browser sees it, but it changes with the deployment.
+name: Pages
+
+on:
+  push:
+    branches: [main]
+    paths: [web/**, .github/workflows/pages.yml]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Assemble the site
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Copy web/ and write config.js
+        env:
+          HOLOPAINT_API: ${{ vars.HOLOPAINT_API }}
+        run: |
+          if [[ ! "$HOLOPAINT_API" =~ ^https://[a-z0-9]+\.execute-api\.[a-z0-9-]+\.amazonaws\.com$ ]]; then
+            echo "::error::set the HOLOPAINT_API repository variable to the API's https URL"
+            exit 1
+          fi
+          rsync -a --exclude tests --exclude config.example.js web/ _site/
+          printf 'window.HOLOPAINT_API = "%s";\n' "$HOLOPAINT_API" > _site/config.js
+      - uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
+      - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
+        with:
+          path: _site
+
+  deploy:
+    name: Deploy
+    needs: build
+    runs-on: ubuntu-24.04
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1

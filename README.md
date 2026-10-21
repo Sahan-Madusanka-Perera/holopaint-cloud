@@ -5,6 +5,9 @@ they can be flood-filled. It runs on AWS as an event-driven serverless pipeline.
 the U-Net I trained from scratch on BSDS500 for
 [HoloDraw](https://github.com/Sahan-Madusanka-Perera/HoloDraw).
 
+**Try it: [sahan-madusanka-perera.github.io/holopaint-cloud](https://sahan-madusanka-perera.github.io/holopaint-cloud/)**.
+Drop a photo, then paint the page by hand in front of your webcam (or with a mouse).
+
 ```
 browser ─► API Gateway ─► api Lambda ─► presigned POST ─► S3 ─► SQS (+DLQ) ─► worker Lambda (ONNX INT8) ─► S3
 ```
@@ -18,7 +21,7 @@ browser ─► API Gateway ─► api Lambda ─► presigned POST ─► S3 ─
 | M3 Terraform: S3, SQS + DLQ, DynamoDB, Lambdas, HTTP API | ✅ |
 | M4 CI (GitHub Actions) + CD (CodePipeline/CodeBuild), smoke test + rollback | ✅ |
 | M5 CloudWatch dashboard + alarms, k6 load test | |
-| M6 Demo page, with painting by hand | local ✅, hosting next |
+| M6 Demo page, with painting by hand, on GitHub Pages | ✅ |
 
 ## M1: compressing the model without changing its output
 
@@ -168,6 +171,10 @@ bar is the job's state: upload, queue, trace, ready.
 The browser does the cheap work first. It decodes the photo, applies EXIF
 rotation, flattens it onto white and caps it at 1600 px as a JPEG. Then it uploads
 straight to S3 and polls the job.
+
+GitHub Pages serves it (`.github/workflows/pages.yml`, on every change to `web/`).
+`config.js` isn't in git: the workflow writes it from the `HOLOPAINT_API` repository
+variable, after checking it looks like an API Gateway URL. Locally:
 
 ```bash
 cp web/config.example.js web/config.js   # set window.HOLOPAINT_API to the api_url output
@@ -361,7 +368,7 @@ worker/   handler.py  photo.py  pipeline.py  onnx_predictor.py  Dockerfile  test
 api/      app.py  tests/
 infra/    bootstrap/  app/  cicd/  modules/{private_bucket,queue,jobs_table,worker,api}/
 ci/       build.yml  deploy.yml                      (CodeBuild buildspecs)
-.github/  workflows/ci.yml
+.github/  workflows/ci.yml  workflows/pages.yml
 scripts/  tf.sh  push_worker.sh  smoke_test.py  local_e2e.py  cd_deploy.sh
 web/      index.html  styles.css  app.js  gestures.js  hand.js  paint.js  shapes.js  view.js  fill.js  tests/
 results/  parity.md  parity.json                   (side-by-side PNGs are git-ignored)
