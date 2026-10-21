@@ -25,7 +25,7 @@ The outlines come from a U-Net Sahan trained from scratch for HoloDraw, compress
 ## Capabilities and Constraints
 
 - Accepts JPEG, PNG and WebP up to 5 MB; the page downscales to 1600 px on the longer side before upload. HEIC is not decoded by the worker.
-- Processing is asynchronous: upload, then poll the job. Measured: about 9 s extra on a cold start, about 5 s warm for a 640×480 photo, longer for larger photos.
+- Processing is asynchronous: upload, then poll the job. Measured under steady load: a 640×480 photo is ready in about 7 s (p95 7.7 s), a 1600×1200 photo in about 25–35 s; a cold start adds about 9 s. Capacity is about 23 photos a minute (two workers).
 - Uploads and results are deleted after 24 hours.
 - API is throttled to 5 requests per second; at most 2 photos process at once.
 - Hosted in AWS ap-southeast-2 (Sydney).
