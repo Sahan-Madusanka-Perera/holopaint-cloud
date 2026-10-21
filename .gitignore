@@ -25,3 +25,6 @@ web/config.js
 
 # Design review captures (contain dataset photos)
 .impeccable/review/
+
+# Load-test photos are downloaded (Unsplash licence), not committed
+loadtest/photos/

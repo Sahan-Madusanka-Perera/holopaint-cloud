@@ -23,12 +23,16 @@ class FakeContext:
     memory_limit_in_mb: int = 3008
     invoked_function_arn: str = "arn:aws:lambda:ap-southeast-2:123456789012:function:holopaint-worker"
     aws_request_id: str = "test-request"
+    remaining_ms: int = 120_000
+
+    def get_remaining_time_in_millis(self) -> int:
+        return self.remaining_ms
 
 
 @pytest.fixture
 def aws():
     with mock_aws():
-        for cached in (handler._s3, handler._jobs):
+        for cached in (handler._s3, handler._jobs, handler._sqs):
             cached.cache_clear()
         s3 = boto3.client("s3")
         s3.create_bucket(Bucket=BUCKET, CreateBucketConfiguration={"LocationConstraint": "ap-southeast-2"})
@@ -39,7 +43,7 @@ def aws():
             BillingMode="PAY_PER_REQUEST",
         )
         yield s3, boto3.resource("dynamodb").Table(TABLE)
-        for cached in (handler._s3, handler._jobs):
+        for cached in (handler._s3, handler._jobs, handler._sqs):
             cached.cache_clear()
 
 
@@ -189,3 +193,27 @@ def test_delivery_delays_are_recorded(aws):
     handler._record_delivery("not a time", {})  # malformed events are skipped, not fatal
     handler._record_delivery(None, {})
     handler.metrics.clear_metrics()
+
+
+def test_a_photo_that_might_not_finish_goes_back_to_the_queue(aws):
+    sqs = boto3.client("sqs")
+    url = sqs.create_queue(QueueName="holopaint-jobs")["QueueUrl"]
+    arn = sqs.get_queue_attributes(QueueUrl=url, AttributeNames=["QueueArn"])["Attributes"]["QueueArn"]
+    sqs.send_message(QueueUrl=url, MessageBody="the second photo")
+    handle = sqs.receive_message(QueueUrl=url, VisibilityTimeout=600)["Messages"][0]["ReceiptHandle"]
+
+    first, second = new_job(aws, b"junk"), new_job(aws, b"junk")
+    records = sqs_event(f"uploads/{first}", message_id="first")["Records"] + \
+        sqs_event(f"uploads/{second}", message_id="second")["Records"]
+    records[1].update(eventSourceARN=arn, receiptHandle=handle)
+
+    result = handler.lambda_handler({"Records": records}, FakeContext(remaining_ms=20_000))
+
+    assert result == {"batchItemFailures": [{"itemIdentifier": "second"}]}
+    assert status(aws, first)["status"] == "FAILED"  # the first photo was processed (and rejected)
+    assert status(aws, second)["status"] == "PENDING"  # the second was never started...
+    assert sqs.receive_message(QueueUrl=url)["Messages"]  # ...and is back in the queue at once
+
+
+def test_cpu_is_named():
+    assert handler.CPU  # "Graviton2" etc. on Lambda; the raw part number or "unknown" elsewhere

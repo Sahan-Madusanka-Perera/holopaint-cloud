@@ -8,8 +8,27 @@ the U-Net I trained from scratch on BSDS500 for
 **Try it: [sahan-madusanka-perera.github.io/holopaint-cloud](https://sahan-madusanka-perera.github.io/holopaint-cloud/)**.
 Drop a photo, then paint the page by hand in front of your webcam (or with a mouse).
 
-```
-browser ─► API Gateway ─► api Lambda ─► presigned POST ─► S3 ─► SQS (+DLQ) ─► worker Lambda (ONNX INT8) ─► S3
+```mermaid
+flowchart LR
+  page["Demo page on GitHub Pages<br/>hand tracking runs on the device"]
+  apigw["API Gateway<br/>HTTP API, 5 req/s"]
+  api["api Lambda<br/>live alias"]
+  ddb[("DynamoDB<br/>job status, 1-day TTL")]
+  s3[("S3<br/>photos and outlines, deleted after 1 day")]
+  sqs[["SQS jobs"]]
+  dlq[["dead-letter queue"]]
+  worker["worker Lambda<br/>arm64 container, ONNX INT8<br/>live alias, at most 2 at once"]
+  cw["CloudWatch<br/>dashboard + 5 alarms"]
+
+  page -- "POST /jobs, GET /jobs/{id}" --> apigw --> api
+  api -- "job rows" --> ddb
+  page -- "photo via presigned POST, max 5 MB" --> s3
+  s3 -- "upload event" --> sqs
+  sqs -- "after 3 failures" --> dlq
+  sqs --> worker
+  worker -- "5 detail levels" --> s3
+  worker -- "DONE" --> ddb
+  worker -. "metrics" .-> cw
 ```
 
 **Status:** deployed on AWS (Sydney, `ap-southeast-2`) and deployed by its own pipeline; M1–M4 done. Next is M5 (dashboards, alarms, load test).

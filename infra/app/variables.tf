@@ -38,6 +38,11 @@ variable "worker_timeout_seconds" {
   default = 120
 }
 
+variable "worker_batch_size" {
+  type    = number
+  default = 1
+}
+
 variable "worker_max_concurrency" {
   type    = number
   default = 2

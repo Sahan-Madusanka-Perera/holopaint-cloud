@@ -93,7 +93,7 @@ resource "aws_lambda_alias" "live" {
 resource "aws_lambda_event_source_mapping" "queue" {
   event_source_arn        = var.queue_arn
   function_name           = aws_lambda_alias.live.arn
-  batch_size              = 1
+  batch_size              = var.batch_size
   function_response_types = ["ReportBatchItemFailures"]
 
   scaling_config {

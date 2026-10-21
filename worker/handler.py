@@ -33,6 +33,9 @@ MODEL_VERSION = os.environ.get("MODEL_VERSION", "dev")
 RESULT_PREFIX = os.environ.get("RESULT_PREFIX", "results/")
 MAX_RECEIVES = int(os.environ.get("MAX_RECEIVES", "3"))  # must match the queue's redrive maxReceiveCount
 JOB_KEY = re.compile(r"^uploads/(?P<job_id>[0-9a-f]{32})$")
+# Photos in a batch run one after another. Don't start one that might not finish
+# before the timeout: the largest photo takes about 35 s on the slowest CPU seen.
+MIN_MS_FOR_A_PHOTO = 50_000
 
 logger = Logger(service="holopaint-worker")
 metrics = Metrics(namespace="HoloPaint", service="worker")
@@ -44,6 +47,11 @@ def _s3():
 
 
 @functools.cache
+def _sqs():
+    return boto3.client("sqs")
+
+
+@functools.cache
 def _jobs():
     return boto3.resource("dynamodb").Table(os.environ["TABLE_NAME"])
 
@@ -52,6 +60,21 @@ def _jobs():
 def _predictor() -> OnnxPredictor:
     threads = int(os.environ["ORT_THREADS"]) if os.environ.get("ORT_THREADS") else None
     return OnnxPredictor(MODEL_PATH, threads=threads)
+
+
+def _cpu() -> str:
+    """The CPU this execution environment landed on. Lambda's arm64 fleet mixes
+    Graviton generations, and the same photo takes about 40% longer on the older."""
+    names = {"0xd0c": "Graviton2", "0xd40": "Graviton3", "0xd4f": "Graviton4"}
+    try:
+        with open("/proc/cpuinfo") as info:
+            parts = {line.split(":")[1].strip() for line in info if line.startswith("CPU part")}
+    except OSError:
+        return "unknown"
+    return "+".join(names.get(part, part) for part in sorted(parts)) or "unknown"
+
+
+CPU = _cpu()
 
 
 def _workers() -> int:
@@ -117,7 +140,7 @@ def process_upload(bucket: str, key: str) -> None:
     metrics.add_metric(name="JobLatency", unit=MetricUnit.Milliseconds, value=elapsed_ms)
     metrics.add_metric(name="TilesPerImage", unit=MetricUnit.Count, value=tiles)
     logger.info("job done", extra={"job_id": job_id, "ms": elapsed_ms, "size": f"{width}x{height}",
-                                   "detail": DETAIL_THRESHOLDS[detail]})
+                                   "detail": DETAIL_THRESHOLDS[detail], "cpu": CPU})
 
 
 def _s3_objects(body: str):
@@ -143,6 +166,16 @@ def _record_delivery(uploaded_at: str | None, attributes: dict) -> None:
         metrics.add_metric(name="QueueDelay", unit=MetricUnit.Milliseconds, value=round(now_ms - int(attributes["SentTimestamp"])))
 
 
+def _release(record: dict) -> None:
+    """Hand a message straight back to the queue, for a worker with more time."""
+    _, _, _, region, account, name = record["eventSourceARN"].split(":")
+    _sqs().change_message_visibility(
+        QueueUrl=f"https://sqs.{region}.amazonaws.com/{account}/{name}",
+        ReceiptHandle=record["receiptHandle"],
+        VisibilityTimeout=0,
+    )
+
+
 def _fail_job_for_key(key: str, reason: str) -> None:
     match = JOB_KEY.match(key)
     if match:
@@ -156,7 +189,17 @@ def _fail_job_for_key(key: str, reason: str) -> None:
 @logger.inject_lambda_context
 def lambda_handler(event, context):
     failures = []
-    for record in event.get("Records", []):
+    for i, record in enumerate(event.get("Records", [])):
+        if i and context.get_remaining_time_in_millis() < MIN_MS_FOR_A_PHOTO:
+            logger.info("not enough time left for another photo; returning it to the queue",
+                        extra={"message_id": record.get("messageId")})
+            try:
+                _release(record)
+            except Exception:  # it comes back after the visibility timeout instead
+                logger.exception("could not return the message to the queue")
+            metrics.add_metric(name="JobsDeferred", unit=MetricUnit.Count, value=1)
+            failures.append({"itemIdentifier": record["messageId"]})
+            continue
         try:
             for bucket, key, uploaded_at in _s3_objects(record["body"]):
                 _record_delivery(uploaded_at, record.get("attributes", {}))
@@ -177,3 +220,4 @@ def lambda_handler(event, context):
 # In Lambda, load the model during the init phase so the first job doesn't pay for it.
 if os.environ.get("AWS_LAMBDA_FUNCTION_NAME"):
     _predictor()
+    logger.info("execution environment ready", extra={"cpu": CPU, "cpus": os.cpu_count()})

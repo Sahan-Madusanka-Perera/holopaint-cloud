@@ -58,3 +58,9 @@ variable "queue_arn" {
 variable "max_receive_count" {
   type = number
 }
+
+variable "batch_size" {
+  type        = number
+  default     = 1
+  description = "Photos one invocation takes from the queue when several are waiting; they run one after another."
+}

@@ -92,6 +92,7 @@ module "worker" {
   ort_threads       = var.worker_ort_threads
   timeout_seconds   = var.worker_timeout_seconds
   max_concurrency   = var.worker_max_concurrency
+  batch_size        = var.worker_batch_size
   bucket_arn        = module.media.arn
   table_name        = module.jobs_table.name
   table_arn         = module.jobs_table.arn
