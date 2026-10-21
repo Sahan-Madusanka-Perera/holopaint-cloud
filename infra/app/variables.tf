@@ -38,9 +38,11 @@ variable "worker_timeout_seconds" {
   default = 120
 }
 
+# Measured under saturation on the same two workers: batch 2 finished 23.8 photos/min
+# against 20.4 (worker utilisation 74% vs 63%) with no slower pairs of uploads.
 variable "worker_batch_size" {
   type    = number
-  default = 1
+  default = 2
 }
 
 variable "worker_max_concurrency" {

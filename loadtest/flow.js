@@ -35,7 +35,9 @@ const SCENARIOS = {
     duration: __ENV.DURATION || "5m", preAllocatedVUs: 10, maxVUs: 40,
   },
   saturate: { executor: "constant-vus", vus: Number(__ENV.VUS || 6), duration: __ENV.DURATION || "5m" },
-  serial: { executor: "per-vu-iterations", vus: 1, iterations: Number(__ENV.ITERATIONS || 12), maxDuration: "30m" },
+  serial: {  // one photo at a time per VU; VUS=2 reaches both workers
+    executor: "per-vu-iterations", vus: Number(__ENV.VUS || 1), iterations: Number(__ENV.ITERATIONS || 12), maxDuration: "30m",
+  },
 };
 
 export const options = {
