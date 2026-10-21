@@ -22,3 +22,11 @@ output "max_receive_count" {
 output "policy_id" {
   value = aws_sqs_queue_policy.this.id
 }
+
+output "name" {
+  value = aws_sqs_queue.this.name
+}
+
+output "dlq_name" {
+  value = aws_sqs_queue.dlq.name
+}

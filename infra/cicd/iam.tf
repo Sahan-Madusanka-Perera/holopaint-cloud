@@ -191,6 +191,30 @@ data "aws_iam_policy_document" "deploy" {
     resources = ["*"]
   }
   statement {
+    sid       = "Dashboard"
+    actions   = ["cloudwatch:PutDashboard", "cloudwatch:GetDashboard", "cloudwatch:DeleteDashboards"]
+    resources = ["arn:aws:cloudwatch::${local.account_id}:dashboard/${local.name}"]
+  }
+  statement {
+    sid       = "Alarms"
+    actions   = ["cloudwatch:PutMetricAlarm", "cloudwatch:DeleteAlarms", "cloudwatch:TagResource", "cloudwatch:UntagResource", "cloudwatch:ListTagsForResource"]
+    resources = ["arn:aws:cloudwatch:${local.arn}:alarm:${local.name}-*"]
+  }
+  statement {
+    sid       = "ReadAlarms"
+    actions   = ["cloudwatch:DescribeAlarms"]
+    resources = ["*"]
+  }
+  statement {
+    sid = "AlarmTopic"
+    actions = [
+      "sns:CreateTopic", "sns:DeleteTopic", "sns:GetTopicAttributes", "sns:SetTopicAttributes", "sns:TagResource",
+      "sns:UntagResource", "sns:ListTagsForResource", "sns:Subscribe", "sns:Unsubscribe",
+      "sns:GetSubscriptionAttributes", "sns:SetSubscriptionAttributes", "sns:ListSubscriptionsByTopic",
+    ]
+    resources = ["arn:aws:sns:${local.arn}:${local.name}-*"]
+  }
+  statement {
     sid       = "WorkerImage"
     actions   = ["ecr:DescribeRepositories", "ecr:DescribeImages", "ecr:BatchGetImage", "ecr:GetDownloadUrlForLayer", "ecr:ListTagsForResource"]
     resources = [data.aws_ecr_repository.worker.arn]

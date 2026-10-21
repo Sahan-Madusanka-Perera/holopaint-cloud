@@ -37,3 +37,7 @@ output "api_function" {
 output "api_version" {
   value = module.api.version
 }
+
+output "dashboard_url" {
+  value = module.monitoring.dashboard_url
+}

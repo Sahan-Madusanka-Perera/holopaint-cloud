@@ -111,3 +111,14 @@ module "api" {
   table_name      = module.jobs_table.name
   table_arn       = module.jobs_table.arn
 }
+
+module "monitoring" {
+  source          = "../modules/monitoring"
+  name            = local.name
+  region          = var.region
+  worker_function = module.worker.function_name
+  api_id          = module.api.api_id
+  queue_name      = module.queue.name
+  dlq_name        = module.queue.dlq_name
+  alarm_email     = var.alarm_email
+}

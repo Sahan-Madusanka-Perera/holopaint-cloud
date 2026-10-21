@@ -52,3 +52,9 @@ variable "api_burst_limit" {
   type    = number
   default = 10
 }
+
+variable "alarm_email" {
+  type        = string
+  default     = ""
+  description = "Mail CloudWatch alarms here; the address must confirm the subscription. Empty: no mail."
+}
